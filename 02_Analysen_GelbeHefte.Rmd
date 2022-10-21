@@ -1,7 +1,5 @@
 ---
 title: "Analysen Gelbe Hefte"
-author: "grb"
-date: "2022-08-04"
 output: 
   pdf_document:
     latex_engine: lualatex # Per default wird pdflatex verwendet. fontspec braucht allerdings lualatex.
@@ -129,7 +127,8 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names)
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+
+tmp %>% kbl2(col.names= c('Antwort', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -154,7 +153,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -177,7 +176,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -200,7 +199,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -223,7 +222,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -236,7 +235,29 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 ```
 
   \linebreak
+U6: Häufigkeit des Verweises zum Zahnarzt 
+```{r Verweis_Zahnarzt}
+tmp <- abs_freq(df=dat, x='U6_Verweis_Zahnarzt') 
 
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+
+  \linebreak
 U7a-U9: Inspektion: morphologische Auffälligkeit
 ```{r morphologische_Auffaelligkeiten2}
 tmp <- abs_freq(df=dat, x='morphologische_Auffaelligkeiten', rel_us=c('U7a', 'U8', 'U9')) 
@@ -251,7 +272,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -278,7 +299,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -301,7 +322,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -324,7 +345,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -347,7 +368,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -370,7 +391,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -393,7 +414,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -416,7 +437,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -439,7 +460,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
@@ -454,9 +475,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
 
 #### 4.3.1.2	Auffälligkeiten zur Beobachtung in den Ergebnissen
-
  \newline
-
 Gesamtergebnis: Auffälligkeiten zur Beobachtung – Eintrag liegt vor
 ```{r Anamnese}
 # Variable umbenennen
@@ -469,13 +488,13 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Eintrag liegt vor', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
 ## relative Tabelle
 tmp2 <- rel_freq(tmp)
-names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+names(tmp2) <- c('Eintrag liegt vor', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
 
 tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
@@ -494,7 +513,8 @@ Gesamtergebnis: Auffälligkeiten zur Beobachtung – Auswertung der Freitexte
 
 
 ### 4.3.2	Dokumentation von erweitertem Beratungsbedarf 
- \newline
+
+#### 4.3.2.1 Erweiterter Beratungsbedarf insgesamt
 gesamter Abschnitt "Beratung" – Anzahl Kreuze gesetzt
 ```{r Beratung}
 tmp <- abs_freq(df=dat, x='Beratung', cat_nr=5) 
@@ -504,13 +524,60 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names)
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Antwort', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
 ## relative Tabelle
 tmp2 <- rel_freq(tmp)
 names(tmp2) <- c('Antwort', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+  \linebreak
+
+#### 4.3.2.2	Sprachberatung
+
+Häufigkeit der Nicht-Erfüllung der vorgegebenen Items zur Sprache im Rahmen der orientierenden Beurteilung der Entwicklung (Item ist anzukreuzen, wenn nicht erfüllt)
+```{r OBE_Sprachdefizit}
+tmp <- abs_freq(df=dat, x='OBE_Sprache') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+Häufigkeit von erweitertem Beratungsbedarf zum Thema Sprache
+```{r}
+tmp <- abs_freq(df=dat, x='Beratung_Sprache') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
 
 tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
@@ -1282,14 +1349,16 @@ lueckl %>%
   slice_head(n=2) %>% 
   select(- Feld, -contains('%')) %>% 
   janitor::adorn_totals('row', name='valides n') %>% 
-  kbl2() %>% row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+  kbl2(col.names= c('ausgefüllt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+  row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 
 lueckl %>% 
   slice_head(n=2) %>%
   mutate(`Ges. [%]`= (Ges. / sum(Ges.))*100) %>% 
   select(ausgefüllt, contains('%')) %>% 
   janitor::adorn_totals('row', name='valides n') %>% 
-  kbl2() %>% row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+  kbl2() %>% 
+  row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
   \linebreak
@@ -1300,14 +1369,16 @@ lueckl %>%
   slice_tail(n=2) %>% 
   select(- Feld, -contains('%')) %>% 
   janitor::adorn_totals('row', name='valides n') %>% 
-  kbl2() %>% row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+  kbl2(col.names= c('ausgefüllt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+  row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 
 lueckl %>% 
   slice_tail(n=2) %>%
   mutate(`Ges. [%]`= (Ges. / sum(Ges.))*100) %>% 
   select(ausgefüllt, contains('%')) %>% 
   janitor::adorn_totals('row', name='valides n') %>% 
-  kbl2() %>% row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+  kbl2() %>% 
+  row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
 
@@ -1349,7 +1420,7 @@ tmp <- tmp %>%
   tibble::rownames_to_column('Fallzahlen') %>% 
   mutate_at(2:length(.), as.numeric)
 
-tmp %>% kbl2()
+tmp %>% kbl2(col.names= c('Fallzahlen', paste(names(.)[2:length(.)], '[n]', sep=' ')))
 ```
 
 
@@ -1451,7 +1522,7 @@ tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Eintrag liegt vor')
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
-tmp %>% kbl2() %>% 
+tmp %>% kbl2(col.names= c('Antwort', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 

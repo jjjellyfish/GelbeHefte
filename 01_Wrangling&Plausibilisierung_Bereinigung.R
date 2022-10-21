@@ -1,4 +1,4 @@
-#### Pr?fung Testdatenlieferungen ####
+#### Prüfung Testdatenlieferungen ####
 
 library(tidyverse) #alle tidy-packages auf einmal
 library(psych)
@@ -627,7 +627,8 @@ dat$U5_Elterninfo[is.na(dat$U5_Elterninfo)] <- '99'
 table(tmp$U5_OBE_Sprache, useNA='always')
 tmp2 <- filter(tmp, is.na(tmp$U5_OBE_Sprache))
 dat$U5_OBE_Sprache[is.na(dat$U5_OBE_Sprache)] <- '99'
-
+dat$U5_OBE_Sprache[dat$U5_OBE_Sprache %in% c('0', '92')] <- '99'
+table(dat$U5_OBE_Sprache, useNA='always')
 
 
 # Untersuchung

@@ -7,6 +7,8 @@
 *.pdf
 *.xlsx
 *.rda
+*.log
+*.tex
 
 #ignore folders
 00_alt/

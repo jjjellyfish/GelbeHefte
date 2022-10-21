@@ -1,0 +1,1475 @@
+---
+title: "Analysen Gelbe Hefte"
+author: "grb"
+date: "2022-08-04"
+output: 
+  pdf_document:
+    latex_engine: lualatex # Per default wird pdflatex verwendet. fontspec braucht allerdings lualatex.
+header-includes:
+  - \usepackage[ngerman]{babel} # Sprache und Format auf Deutsch. Nicht besonders wichtig für uns aber schadet auch nicht.
+  - \usepackage[T1]{fontenc} # Für Umlaute
+  - \usepackage[utf8]{inputenc} # Alles UTF-8
+  - \usepackage{fontspec} # Für Calibri
+  - \setmainfont{Calibri}
+  - \usepackage{float}
+geometry: margin = 2cm
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+#tinytex::install_tinytex() #notwendig, wenn keine LateX-Distro oder für Update
+
+library(tidyverse)
+library(janitor)
+
+library(tinytex) # Notwendig damit LaTeX-Packages richtig installiert werden
+library(knitr)
+library(kableExtra)
+```
+
+```{r}
+load('gh_clean.rda')
+```
+
+
+```{r knitr options}
+# wrapper
+kbl2 = function(...) {
+  kableExtra::kbl(..., booktabs = T, digits=1, 
+                  format.args = list(decimal.mark = ',', big.mark = ".")) %>% 
+    kable_styling(latex_options = "HOLD_position", position = "left")
+}
+
+options(knitr.kable.NA = '')
+```
+
+```{r functions}
+abs_freq <- function(df, x, cat_nr=NULL, rel_us=c('U2', 'U3','U4', 'U5', 'U6', 'U7', 'U7a', 'U8', 'U9')) {
+  #### erstelle Outputtabelle mit absoluten Häufigkeiten
+  ### benötigte Variablen extrahieren & Ausfüllstatus prüfen (liegt U vor?)
+  df <- select(df, GH_ID, contains('ausgefüllt'), contains({x})) %>% 
+    pivot_longer(contains({x}), names_to='u', values_to = "var") %>% 
+    pivot_longer(contains('ausgefüllt'), names_to='u_data', values_to = "data") %>%
+    mutate(u=str_extract(u, "[^_]+"), 
+           u_data=str_extract(u_data, "[^_]+")) %>% 
+    filter(u==u_data & data==1) %>% 
+    filter(u %in% {rel_us}) %>%
+    naniar::replace_with_na(replace = list(var = 99)) %>% 
+    select(-u_data, -data) 
+  
+
+  ### optionaler Parameter cat_nr
+    if(!is.null(cat_nr)) {
+    # wenn cat_nr gegeben, fasse alle Antworten oberhalb dieser Kategorie zusammen
+    cat_name <- paste({cat_nr},'+', sep='')
+    df <- df %>% mutate(cat=case_when(as.numeric(var) >= cat_nr ~ cat_name,TRUE ~ as.character(var)))
+  } 
+  else {
+    # wenn nicht, verwende vorhandene Ausprägungen
+    df <- df %>% mutate(cat=var)
+  }
+  
+  ### erstelle Häufigkeitstabelle
+  df <- df %>%
+    group_by(u, cat) %>%
+    tally() %>%
+    pivot_wider(., names_from = u, values_from = n) %>%
+    janitor::adorn_totals(c('row', 'col'), name = c('Ges.','Ges.'), na.rm = TRUE) %>%
+    untabyl() %>%
+    rbind(., c('valide', colSums(.[1:(nrow(.)-2),2:length(.)], na.rm = TRUE))) %>%
+    mutate_at(vars(-cat), as.numeric) %>% 
+    mutate(across(.cols=2:length(.), ~replace_na(.x, 0)))
+}
+
+name_abs_tbl <- function(df, namestring, namecat='Antwort'){
+  #### benenne Zeilen und Spalten für die Outputtabelle mit absoluten Häufigkeiten
+  ### Zeilen
+  cat_names <- c({namestring}, 'fehlend', 'gesamt n', 'valides n')
+  df <- df %>% mutate(cat=cat_names)
+  cat_order <- c(df$cat[1:(nrow(df)-3)], 'valides n', 'fehlend', 'gesamt n')
+  df <- df %>% arrange(match(cat, cat_order))
+  ### erste Spalte
+  names(df) <- c({namecat}, names(df)[2:length(tmp)])
+  df
+}
+
+rel_freq <- function(df) {
+  #### erstelle aus der Outputtabelle mit absoluten Häufigkeiten eine 
+  # Outputtabelle mit absoluten Häufigkeiten
+  df <- df %>% 
+  slice_head(n=-3) %>% 
+  janitor::adorn_percentages('col') %>% 
+  untabyl() %>% 
+  janitor::adorn_totals('row', name='valides n') %>% 
+  janitor::adorn_pct_formatting(digits = 1, affix_sign = FALSE) %>% 
+  mutate_at(2:length(.), as.numeric)
+}
+
+# erstelle String für Tebellen-alignment (Prozentzahlen rechtsbündig)
+align_string <- function(df) {
+  paste('l', paste(rep('r', (length(df)-1)), collapse=''), sep='')
+}
+```
+
+
+## 4.3	Häufigkeit der Dokumentation 
+
+### 4.3.1	Dokumentation von Auffälligkeiten 
+
+#### 4.3.1.1	Auffälligkeiten bei der Untersuchung
+
+ \newline
+
+Anzahl Kreuze im Abschnitt „Untersuchung“
+```{r Untersuchung, echo=FALSE, warning=FALSE, message=FALSE}
+tmp <- abs_freq(df=dat, x='Untersuchung', cat_nr=3)
+
+cat_names <- c('0 Kreuze', '1 Kreuz', '2 Kreuze', '3+ Kreuze')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names)
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Antwort', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% 
+  kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+
+  \linebreak
+
+U2, U3: Inspektion: morphologische Auffälligkeiten (z. B. Ptosis, Leuko-korie, Bulbusgrößenauffälligkeiten, Kolobom)
+```{r morphologische_Auffaelligkeiten}
+tmp <- abs_freq(df=dat, x='morphologische_Auffaelligkeiten', rel_us = c('U2', 'U3'))
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U2, U3: Prüfung im durchfallenden Licht: Transilluminationsauffälligkeit bei Trübung der brechenden Medien
+```{r Transillumination}
+tmp <- abs_freq(df=dat, x='Transillumination', rel_us = c('U2', 'U3'))
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U4-U7: Brückner-Test: Transilluminationsunterschied (z.B. bei Trübung der brechenden Medien, Strabismus, Anisometropie)
+```{r Brueckner}
+tmp <- abs_freq(df=dat, x='Brueckner')
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U6: Auffälligkeiten an Zähnen und Schleimhaut
+```{r Zaehne}
+tmp <- abs_freq(df=dat, x='Zaehne') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U7a-U9: Inspektion: morphologische Auffälligkeit
+```{r morphologische_Auffaelligkeiten2}
+tmp <- abs_freq(df=dat, x='morphologische_Auffaelligkeiten', rel_us=c('U7a', 'U8', 'U9')) 
+
+### Ja-Ausprägung hinzufügen
+ja <- tmp[1,]
+ja[1,names(ja)] = data.frame('ja', 0, 0, 0, 0)
+tmp <- bind_rows(ja, tmp)
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U7a-U9: Inspektion: Nystagmus
+```{r Nystagmus}
+tmp <- abs_freq(df=dat, x='Nystagmus') 
+
+### Sortierung ändern
+tmp <- tmp %>% arrange(match(cat, '1', '2')) %>% 
+  mutate(across(.cols=2:length(.), ~replace_na(.x, 0)))
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U7a-U9: Inspektion: Kopffehlhaltung
+```{r Kopffehlhaltung}
+tmp <- abs_freq(df=dat, x='Kopffehlhaltung') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U7a-U9: Pupillenstatus: auffällig (Vergleich Größe, Form, Lichtreaktion rechts/links)
+```{r Pupillenstatus}
+tmp <- abs_freq(df=dat, x='Pupillenstatus') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U7a-U9: Hornhautreflexbildchen: auffällig (Strabismus)
+```{r Hornhaut}
+tmp <- abs_freq(df=dat, x='Hornhaut') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U7a-U9: Stereo-Test (z. B. Lang-Test, Titmus-Test, TNO-Test): auffällig
+```{r Stereo}
+tmp <- abs_freq(df=dat, x='Stereo') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U7a-U9: Sehtest (monokulare Prüfung...): Sehschwäche rechts
+```{r Sehschwaeche_rechts}
+tmp <- abs_freq(df=dat, x='Sehschwaeche_rechts') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U7a-U9: Sehtest (monokulare Prüfung...): Sehschwäche links
+```{r Sehschwaeche_links}
+tmp <- abs_freq(df=dat, x='Sehschwaeche_links') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+U7a-U9: Sehtest (monokulare Prüfung...): Rechts-Links-Differenz
+```{r Sehschwaeche_Differenz}
+tmp <- abs_freq(df=dat, x='Sehschwaeche_Differenz') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+
+
+#### 4.3.1.2	Auffälligkeiten zur Beobachtung in den Ergebnissen
+
+ \newline
+
+Gesamtergebnis: Auffälligkeiten zur Beobachtung – Eintrag liegt vor
+```{r Anamnese}
+# Variable umbenennen
+names(dat) <- str_replace(names(dat), "Anamnese_Freitext", "Ana_Freitext")
+
+tmp <- abs_freq(df=dat, x='Anamnese') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+
+## LESEZEICHEN
+
+Gesamtergebnis: Auffälligkeiten zur Beobachtung – Auswertung der Freitexte
+```{r Anamnese_Freitext}
+
+```
+
+
+
+### 4.3.2	Dokumentation von erweitertem Beratungsbedarf 
+ \newline
+gesamter Abschnitt "Beratung" – Anzahl Kreuze gesetzt
+```{r Beratung}
+tmp <- abs_freq(df=dat, x='Beratung', cat_nr=5) 
+
+cat_names <- c('0 Kreuze', '1 Kreuz', '2 Kreuze', '3 Kreuze', '4 Kreuze', '5+ Kreuze')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names)
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Antwort', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+
+## 4.4	Lückenlosigkeit der Dokumentation
+
+### Lückenlose Dokumentation einer U-Untersuchung
+**U2**
+```{r u2, message=FALSE, warning=FALSE}
+## relevante Variablen filtern & Datensatz vorbereiten
+vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
+          'Auffaelligkeiten', 'VitaminK_ja', 
+          'VitaminK_Dosis_2mg', 'VitaminK_abwDosis', 'VitaminK_nein')
+
+tmp <- dat %>% 
+  select(GH_ID, contains('ausgefüllt'), matches(vars), 
+         -contains('morphologische'), -contains('Freitext')) %>% 
+  filter(U2_ausgefüllt==1) %>% 
+  select(GH_ID, contains('U2')) 
+
+# Angaben rauslöschen, wenn die Seite fehlt
+del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .)))
+tmp <- anti_join(tmp, del)
+
+# Variablen umbenennen
+names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U2_].+")
+
+## Kriterien umsetzen
+tmp <- tmp %>% 
+  mutate(
+    kgewicht = ifelse(KGewicht == 1, 1, 0),
+    klaenge =  ifelse(KLaenge == 1, 1, 0),
+    kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
+    auff = case_when(
+      keineAuffaelligkeiten == 1 | Auffaelligkeiten == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    vitk_easy = case_when(
+      VitaminK_ja == 1 | VitaminK_nein == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    vitk_hard = case_when(
+      (VitaminK_ja == 1 & (VitaminK_Dosis_2mg == 1 | VitaminK_abwDosis == 1)) | VitaminK_nein == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    ges_easy = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & vitk_easy == 1 ~ 1, 
+      TRUE ~ 0
+    ),
+    ges_hard = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & vitk_hard == 1 ~ 1, 
+      TRUE ~ 0
+    )
+  )
+
+
+# Ausfüllstand pro ID für Lückenlosigkeit aller Us über das Kind ablegen
+fill_u2 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U2')
+
+tmp2 <- tmp %>% 
+  select(kgewicht:ges_hard) %>% 
+  mutate_all(., ~ as.factor(.)) %>% 
+  dlookr::diagnose_category(.) %>% 
+  select(variables, levels, freq, ratio)
+
+tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
+                    'Körperlänge dokumentiert', NA,
+                    'Kopfumfang dokumentiert', NA,
+                    'Auffälligkeiten dokumentiert', NA,
+                    'Vitamin K dokumentiert (vereinfacht)', NA,
+                    'Vitamin K dokumentiert (vollständig)', NA,
+                    'U-Untersuchung lückenlos (vereinfacht)', NA,
+                    'U-Untersuchung lückenlos (vollständig)', NA)
+
+tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
+names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+
+# Lückenlosigkeit gesamt ablegen
+lueckl <- tmp2 %>% slice_tail(n=4)
+
+rowline_at <- nrow(tmp2) - 4
+tmp2 %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE) 
+```
+  \linebreak
+
+
+**U3**
+```{r u3, message=FALSE, warning=FALSE}
+## relevante Variablen filtern & Datensatz vorbereiten
+vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
+          'Auffaelligkeiten', 'VitaminK_ja', 
+          'VitaminK_Dosis_2mg', 'VitaminK_abwDosis', 'VitaminK_nein')
+
+tmp <- dat %>% 
+  select(GH_ID, contains('ausgefüllt'), matches(vars), 
+         -contains('morphologische'), -contains('Freitext')) %>% 
+  filter(U3_ausgefüllt==1) %>% 
+  select(GH_ID, contains('U3')) 
+
+# Angaben rauslöschen, wenn die Seite fehlt
+del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .)))
+tmp <- anti_join(tmp, del)
+
+# Variablen umbenennen
+names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U3_].+")
+
+## Kriterien umsetzen
+tmp <- tmp %>% 
+  mutate(
+    kgewicht = ifelse(KGewicht == 1, 1, 0),
+    klaenge =  ifelse(KLaenge == 1, 1, 0),
+    kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
+    auff = case_when(
+      keineAuffaelligkeiten == 1 | Auffaelligkeiten == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    vitk_easy = case_when(
+      VitaminK_ja == 1 | VitaminK_nein == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    vitk_hard = case_when(
+      (VitaminK_ja == 1 & (VitaminK_Dosis_2mg == 1 | VitaminK_abwDosis == 1)) | VitaminK_nein == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    ges_easy = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & vitk_easy == 1 ~ 1, 
+      TRUE ~ 0
+    ),
+    ges_hard = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & vitk_hard == 1 ~ 1, 
+      TRUE ~ 0
+    )
+  )
+
+
+# Ausfüllstand pro ID für Lückenlosigkeit aller Us über das Kind ablegen
+fill_u3 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U3')
+
+tmp2 <- tmp %>% 
+  select(kgewicht:ges_hard) %>% 
+  mutate_all(., ~ as.factor(.)) %>% 
+  dlookr::diagnose_category(.) %>% 
+  select(variables, levels, freq, ratio)
+
+tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
+                    'Körperlänge dokumentiert', NA,
+                    'Kopfumfang dokumentiert', NA,
+                    'Auffälligkeiten dokumentiert', NA,
+                    'Vitamin K dokumentiert (vereinfacht)', NA,
+                    'Vitamin K dokumentiert (vollständig)', NA,
+                    'U-Untersuchung lückenlos (vereinfacht)', NA,
+                    'U-Untersuchung lückenlos (vollständig)', NA)
+
+tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
+names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+
+# Lückenlosigkeit gesamt ablegen
+tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
+lueckl <- bind_cols(lueckl, tmp)
+
+rowline_at <- nrow(tmp2) - 4
+tmp2 %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+  \linebreak
+
+
+**U4**
+```{r u4, message=FALSE, warning=FALSE}
+## relevante Variablen filtern & Datensatz vorbereiten
+vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
+          'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
+
+tmp <- dat %>% 
+  select(GH_ID, contains('ausgefüllt'), matches(vars), 
+         -contains('morphologische'), -contains('Freitext')) %>% 
+  filter(U4_ausgefüllt==1) %>% 
+  select(GH_ID, contains('U4')) 
+
+# Angaben rauslöschen, wenn die Seite fehlt
+del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .)))
+tmp <- anti_join(tmp, del)
+
+# Variablen umbenennen
+names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U4_].+")
+
+## Kriterien umsetzen
+tmp <- tmp %>% 
+  mutate(
+    kgewicht = ifelse(KGewicht == 1, 1, 0),
+    klaenge =  ifelse(KLaenge == 1, 1, 0),
+    kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
+    auff = case_when(
+      keineAuffaelligkeiten == 1 | Auffaelligkeiten == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_easy = case_when(
+      Impfstatus_ja == 1  ~ 1,
+      Impfstatus_nein == 1 | Impfstatus_fehlend == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_hard = case_when(
+      Impfstatus_ja == 1 | (Impfstatus_nein == 1 & Impfstatus_fehlend == 1) ~ 1,
+      TRUE ~ 0
+    ),
+    ges_easy = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      TRUE ~ 0
+    ),
+    ges_hard = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      TRUE ~ 0
+    )
+  )
+
+# Ausfüllstand pro ID für Lückenlosigkeit aller Us über das Kind ablegen
+fill_u4 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U4')
+
+tmp2 <- tmp %>% 
+  select(kgewicht:ges_hard) %>% 
+  mutate_all(., ~ as.factor(.)) %>% 
+  dlookr::diagnose_category(.) %>% 
+  select(variables, levels, freq, ratio)
+
+tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
+                    'Körperlänge dokumentiert', NA,
+                    'Kopfumfang dokumentiert', NA,
+                    'Auffälligkeiten dokumentiert', NA,
+                    'Impfstatus dokumentiert (vereinfacht)', NA,
+                    'Impfstatus dokumentiert (vollständig)', NA,
+                    'U-Untersuchung lückenlos (vereinfacht)', NA,
+                    'U-Untersuchung lückenlos (vollständig)', NA)
+
+tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
+names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+
+# Lückenlosigkeit gesamt ablegen
+tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
+lueckl <- bind_cols(lueckl, tmp)
+
+rowline_at <- nrow(tmp2) - 4
+tmp2 %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+  \linebreak
+
+
+**U5**
+```{r u5, message=FALSE, warning=FALSE}
+## relevante Variablen filtern & Datensatz vorbereiten
+vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
+          'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
+
+tmp <- dat %>% 
+  select(GH_ID, contains('ausgefüllt'), matches(vars), 
+         -contains('morphologische'), -contains('Freitext')) %>% 
+  filter(U5_ausgefüllt==1) %>% 
+  select(GH_ID, contains('U5')) 
+
+# Angaben rauslöschen, wenn die Seite fehlt
+del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .)))
+tmp <- anti_join(tmp, del)
+
+# Variablen umbenennen
+names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U5_].+")
+
+## Kriterien umsetzen
+tmp <- tmp %>% 
+  mutate(
+    kgewicht = ifelse(KGewicht == 1, 1, 0),
+    klaenge =  ifelse(KLaenge == 1, 1, 0),
+    kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
+    auff = case_when(
+      keineAuffaelligkeiten == 1 | Auffaelligkeiten == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_easy = case_when(
+      Impfstatus_ja == 1  ~ 1,
+      Impfstatus_nein == 1 | Impfstatus_fehlend == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_hard = case_when(
+      Impfstatus_ja == 1 | (Impfstatus_nein == 1 & Impfstatus_fehlend == 1) ~ 1,
+      TRUE ~ 0
+    ),
+    ges_easy = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      TRUE ~ 0
+    ),
+    ges_hard = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      TRUE ~ 0
+    )
+  )
+
+# Ausfüllstand pro ID für Lückenlosigkeit aller Us über das Kind ablegen
+fill_u5 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U5')
+
+tmp2 <- tmp %>% 
+  select(kgewicht:ges_hard) %>% 
+  mutate_all(., ~ as.factor(.)) %>% 
+  dlookr::diagnose_category(.) %>% 
+  select(variables, levels, freq, ratio)
+
+## fehlende Auspärgungen vervollständigen
+# ganz furchtbar, aber keine bessere Lösung gefunden
+tmp1 <- tmp2 %>% slice_head(n=3)
+tmp2 <- tmp2 %>% slice_tail(n=-3)
+tmp1 <- tmp1 %>% add_row(variables='klaenge', levels='0', freq=0, ratio=0)
+tmp2 <- bind_rows(tmp1, tmp2)
+
+tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
+                    'Körperlänge dokumentiert', NA,
+                    'Kopfumfang dokumentiert', NA,
+                    'Auffälligkeiten dokumentiert', NA,
+                    'Impfstatus dokumentiert (vereinfacht)', NA,
+                    'Impfstatus dokumentiert (vollständig)', NA,
+                    'U-Untersuchung lückenlos (vereinfacht)', NA,
+                    'U-Untersuchung lückenlos (vollständig)', NA)
+
+tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
+names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+
+# Lückenlosigkeit gesamt ablegen
+tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
+lueckl <- bind_cols(lueckl, tmp)
+
+rowline_at <- nrow(tmp2) - 4
+tmp2 %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+  \linebreak
+
+
+**U6**
+```{r u6, message=FALSE, warning=FALSE}
+## relevante Variablen filtern & Datensatz vorbereiten
+vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
+          'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
+
+tmp <- dat %>% 
+  select(GH_ID, contains('ausgefüllt'), matches(vars), 
+         -contains('morphologische'), -contains('Freitext')) %>% 
+  filter(U6_ausgefüllt==1) %>% 
+  select(GH_ID, contains('U6')) 
+
+# Angaben rauslöschen, wenn die Seite fehlt
+del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .)))
+tmp <- anti_join(tmp, del)
+
+# Variablen umbenennen
+names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U6_].+")
+
+
+## Kriterien umsetzen
+tmp <- tmp %>% 
+  mutate(
+    kgewicht = ifelse(KGewicht == 1, 1, 0),
+    klaenge =  ifelse(KLaenge == 1, 1, 0),
+    kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
+    auff = case_when(
+      keineAuffaelligkeiten == 1 | Auffaelligkeiten == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_easy = case_when(
+      Impfstatus_ja == 1  ~ 1,
+      Impfstatus_nein == 1 | Impfstatus_fehlend == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_hard = case_when(
+      Impfstatus_ja == 1 | (Impfstatus_nein == 1 & Impfstatus_fehlend == 1) ~ 1,
+      TRUE ~ 0
+    ),
+    ges_easy = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      TRUE ~ 0
+    ),
+    ges_hard = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      TRUE ~ 0
+    )
+  )
+
+# Ausfüllstand pro ID für Lückenlosigkeit aller Us über das Kind ablegen
+fill_u6 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U6')
+
+tmp2 <- tmp %>% 
+  select(kgewicht:ges_hard) %>% 
+  mutate_all(., ~ as.factor(.)) %>% 
+  dlookr::diagnose_category(.) %>% 
+  select(variables, levels, freq, ratio)
+
+tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
+                    'Körperlänge dokumentiert', NA,
+                    'Kopfumfang dokumentiert', NA,
+                    'Auffälligkeiten dokumentiert', NA,
+                    'Impfstatus dokumentiert (vereinfacht)', NA,
+                    'Impfstatus dokumentiert (vollständig)', NA,
+                    'U-Untersuchung lückenlos (vereinfacht)', NA,
+                    'U-Untersuchung lückenlos (vollständig)', NA)
+
+tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
+names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+
+# Lückenlosigkeit gesamt ablegen
+tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
+lueckl <- bind_cols(lueckl, tmp)
+
+rowline_at <- nrow(tmp2) - 4
+tmp2 %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+  \linebreak
+
+
+**U7**
+```{r u7, message=FALSE, warning=FALSE}
+## relevante Variablen filtern & Datensatz vorbereiten
+vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'BMI','keineAuffaelligkeiten', 
+          'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
+
+tmp <- dat %>% 
+  select(GH_ID, contains('ausgefüllt'), matches(vars), 
+         -contains('morphologische'), -contains('Freitext')) %>% 
+  filter(U7_ausgefüllt==1) %>% 
+  select(GH_ID, contains('U7'), -contains('U7a')) 
+
+# Angaben rauslöschen, wenn die Seite fehlt
+del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .)))
+tmp <- anti_join(tmp, del)
+
+# Variablen umbenennen
+names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U7_].+")
+
+
+## Kriterien umsetzen
+tmp <- tmp %>% 
+  mutate(
+    kgewicht = ifelse(KGewicht == 1, 1, 0),
+    klaenge =  ifelse(KLaenge == 1, 1, 0),
+    kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
+    bmi = ifelse(BMI == 1, 1, 0),
+    auff = case_when(
+      keineAuffaelligkeiten == 1 | Auffaelligkeiten == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_easy = case_when(
+      Impfstatus_ja == 1  ~ 1,
+      Impfstatus_nein == 1 | Impfstatus_fehlend == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_hard = case_when(
+      Impfstatus_ja == 1 | (Impfstatus_nein == 1 & Impfstatus_fehlend == 1) ~ 1,
+      TRUE ~ 0
+    ),
+    ges_easy = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      TRUE ~ 0
+    ),
+    ges_hard = case_when(
+      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      TRUE ~ 0
+    )
+  )
+
+# Ausfüllstand pro ID für Lückenlosigkeit aller Us über das Kind ablegen
+fill_u7 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U7')
+
+tmp2 <- tmp %>% 
+  select(kgewicht:ges_hard) %>% 
+  mutate_all(., ~ as.factor(.)) %>% 
+  dlookr::diagnose_category(.) %>% 
+  select(variables, levels, freq, ratio)
+
+tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
+                    'Körperlänge dokumentiert', NA,
+                    'Kopfumfang dokumentiert', NA,
+                    'BMI dokumentiert', NA,
+                    'Auffälligkeiten dokumentiert', NA,
+                    'Impfstatus dokumentiert (vereinfacht)', NA,
+                    'Impfstatus dokumentiert (vollständig)', NA,
+                    'U-Untersuchung lückenlos (vereinfacht)', NA,
+                    'U-Untersuchung lückenlos (vollständig)', NA)
+
+tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
+names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+
+# Lückenlosigkeit gesamt ablegen
+tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
+lueckl <- bind_cols(lueckl, tmp)
+
+rowline_at <- nrow(tmp2) - 4
+tmp2 %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+  \linebreak
+
+**U7a**
+```{r u7a, message=FALSE, warning=FALSE}
+## relevante Variablen filtern & Datensatz vorbereiten
+vars <- c('KGewicht', 'KLaenge', 'BMI','keineAuffaelligkeiten', 
+          'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
+
+tmp <- dat %>% 
+  select(GH_ID, contains('ausgefüllt'), matches(vars), 
+         -contains('morphologische'), -contains('Freitext')) %>% 
+  filter(U7a_ausgefüllt==1) %>% 
+  select(GH_ID, contains('U7a')) 
+
+# Angaben rauslöschen, wenn die Seite fehlt
+del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .)))
+tmp <- anti_join(tmp, del)
+
+# Variablen umbenennen
+names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U7a_].+")
+
+
+## Kriterien umsetzen
+tmp <- tmp %>% 
+  mutate(
+    kgewicht = ifelse(KGewicht == 1, 1, 0),
+    klaenge =  ifelse(KLaenge == 1, 1, 0),
+    bmi = ifelse(BMI == 1, 1, 0),
+    auff = case_when(
+      keineAuffaelligkeiten == 1 | Auffaelligkeiten == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_easy = case_when(
+      Impfstatus_ja == 1  ~ 1,
+      Impfstatus_nein == 1 | Impfstatus_fehlend == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_hard = case_when(
+      Impfstatus_ja == 1 | (Impfstatus_nein == 1 & Impfstatus_fehlend == 1) ~ 1,
+      TRUE ~ 0
+    ),
+    ges_easy = case_when(
+      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      TRUE ~ 0
+    ),
+    ges_hard = case_when(
+      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      TRUE ~ 0
+    )
+  )
+
+# Ausfüllstand pro ID für Lückenlosigkeit aller Us über das Kind ablegen
+fill_u7a <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U7a')
+
+tmp2 <- tmp %>% 
+  select(kgewicht:ges_hard) %>% 
+  mutate_all(., ~ as.factor(.)) %>% 
+  dlookr::diagnose_category(.) %>% 
+  select(variables, levels, freq, ratio)
+
+tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
+                    'Körperlänge dokumentiert', NA,
+                    'BMI dokumentiert', NA,
+                    'Auffälligkeiten dokumentiert', NA,
+                    'Impfstatus dokumentiert (vereinfacht)', NA,
+                    'Impfstatus dokumentiert (vollständig)', NA,
+                    'U-Untersuchung lückenlos (vereinfacht)', NA,
+                    'U-Untersuchung lückenlos (vollständig)', NA)
+
+
+tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
+names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+
+# Lückenlosigkeit gesamt ablegen
+tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
+lueckl <- bind_cols(lueckl, tmp)
+
+rowline_at <- nrow(tmp2) - 4
+tmp2 %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+  \linebreak
+
+**U8**
+```{r u8, message=FALSE, warning=FALSE}
+## relevante Variablen filtern & Datensatz vorbereiten
+vars <- c('KGewicht', 'KLaenge', 'BMI','keineAuffaelligkeiten', 
+          'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
+
+tmp <- dat %>% 
+  select(GH_ID, contains('ausgefüllt'), matches(vars), 
+         -contains('morphologische'), -contains('Freitext')) %>% 
+  filter(U8_ausgefüllt==1) %>% 
+  select(GH_ID, contains('U8')) 
+
+# Angaben rauslöschen, wenn die Seite fehlt
+del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .)))
+tmp <- anti_join(tmp, del)
+
+# Variablen umbenennen
+names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U8_].+")
+
+
+## Kriterien umsetzen
+tmp <- tmp %>% 
+  mutate(
+    kgewicht = ifelse(KGewicht == 1, 1, 0),
+    klaenge =  ifelse(KLaenge == 1, 1, 0),
+    bmi = ifelse(BMI == 1, 1, 0),
+    auff = case_when(
+      keineAuffaelligkeiten == 1 | Auffaelligkeiten == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_easy = case_when(
+      Impfstatus_ja == 1  ~ 1,
+      Impfstatus_nein == 1 | Impfstatus_fehlend == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_hard = case_when(
+      Impfstatus_ja == 1 | (Impfstatus_nein == 1 & Impfstatus_fehlend == 1) ~ 1,
+      TRUE ~ 0
+    ),
+    ges_easy = case_when(
+      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      TRUE ~ 0
+    ),
+    ges_hard = case_when(
+      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      TRUE ~ 0
+    )
+  )
+
+# Ausfüllstand pro ID für Lückenlosigkeit aller Us über das Kind ablegen
+fill_u8 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U8')
+
+tmp2 <- tmp %>% 
+  select(kgewicht:ges_hard) %>% 
+  mutate_all(., ~ as.factor(.)) %>% 
+  dlookr::diagnose_category(.) %>% 
+  select(variables, levels, freq, ratio)
+
+tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
+                    'Körperlänge dokumentiert', NA,
+                    'BMI dokumentiert', NA,
+                    'Auffälligkeiten dokumentiert', NA,
+                    'Impfstatus dokumentiert (vereinfacht)', NA,
+                    'Impfstatus dokumentiert (vollständig)', NA,
+                    'U-Untersuchung lückenlos (vereinfacht)', NA,
+                    'U-Untersuchung lückenlos (vollständig)', NA)
+
+
+tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
+names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+
+# Lückenlosigkeit gesamt ablegen
+tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
+lueckl <- bind_cols(lueckl, tmp)
+
+rowline_at <- nrow(tmp2) - 4
+tmp2 %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+  \linebreak
+
+**U9**
+```{r u9, message=FALSE, warning=FALSE}
+## relevante Variablen filtern & Datensatz vorbereiten
+vars <- c('KGewicht', 'KLaenge', 'BMI','keineAuffaelligkeiten', 
+          'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
+
+tmp <- dat %>% 
+  select(GH_ID, contains('ausgefüllt'), matches(vars), 
+         -contains('morphologische'), -contains('Freitext')) %>% 
+  filter(U9_ausgefüllt==1) %>% 
+  select(GH_ID, contains('U9')) 
+
+# Angaben rauslöschen, wenn die Seite fehlt
+del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .)))
+tmp <- anti_join(tmp, del)
+
+# Variablen umbenennen
+names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U9_].+")
+
+
+## Kriterien umsetzen
+tmp <- tmp %>% 
+  mutate(
+    kgewicht = ifelse(KGewicht == 1, 1, 0),
+    klaenge =  ifelse(KLaenge == 1, 1, 0),
+    bmi = ifelse(BMI == 1, 1, 0),
+    auff = case_when(
+      keineAuffaelligkeiten == 1 | Auffaelligkeiten == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_easy = case_when(
+      Impfstatus_ja == 1  ~ 1,
+      Impfstatus_nein == 1 | Impfstatus_fehlend == 1 ~ 1,
+      TRUE ~ 0
+    ),
+    impf_hard = case_when(
+      Impfstatus_ja == 1 | (Impfstatus_nein == 1 & Impfstatus_fehlend == 1) ~ 1,
+      TRUE ~ 0
+    ),
+    ges_easy = case_when(
+      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      TRUE ~ 0
+    ),
+    ges_hard = case_when(
+      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      TRUE ~ 0
+    )
+  )
+
+# Ausfüllstand pro ID für Lückenlosigkeit aller Us über das Kind ablegen
+fill_u9 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U9')
+
+tmp2 <- tmp %>% 
+  select(kgewicht:ges_hard) %>% 
+  mutate_all(., ~ as.factor(.)) %>% 
+  dlookr::diagnose_category(.) %>% 
+  select(variables, levels, freq, ratio)
+
+## fehlende Auspärgungen vervollständigen
+# ganz furchtbar, aber keine bessere Lösung gefunden
+tmp1 <- tmp2 %>% slice_head(n=1)
+tmp1 <- tmp1 %>% add_row(variables='kgewicht', levels='0', freq=0, ratio=0)
+
+tmp3 <- tmp2 %>% slice(2)
+tmp3 <- tmp3 %>% add_row(variables='klaenge', levels='0', freq=0, ratio=0)
+
+tmp2 <- tmp2 %>% slice_tail(n=-2)
+tmp2 <- bind_rows(tmp1, tmp3, tmp2)
+
+
+tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
+                    'Körperlänge dokumentiert', NA,
+                    'BMI dokumentiert', NA,
+                    'Auffälligkeiten dokumentiert', NA,
+                    'Impfstatus dokumentiert (vereinfacht)', NA,
+                    'Impfstatus dokumentiert (vollständig)', NA,
+                    'U-Untersuchung lückenlos (vereinfacht)', NA,
+                    'U-Untersuchung lückenlos (vollständig)', NA)
+
+
+tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
+names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+
+# Lückenlosigkeit gesamt ablegen
+tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
+lueckl <- bind_cols(lueckl, tmp)
+
+rowline_at <- nrow(tmp2) - 4
+tmp2 %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+```{r Lueckenlosigkeite_U_gesamt}
+names(lueckl)[3:length(lueckl)] <- c('U2', 'U2 [%]', 'U3', 'U3 [%]', 'U4', 'U4 [%]', 'U5', 'U5 [%]', 'U6', 'U6 [%]', 
+                                     'U7', 'U7 [%]', 'U7a', 'U7a [%]', 'U8', 'U8 [%]', 'U9', 'U9 [%]')
+
+lueckl <- lueckl %>% 
+  mutate(Ges.=rowSums(select(., U2, U3, U4, U5, U6, U7, U7a, U8, U9), na.rm = TRUE))
+
+```
+
+  \linebreak
+
+Untersuchung lückenlos (vereinfachte Definition)
+```{r vereinfacht }
+lueckl %>% 
+  slice_head(n=2) %>% 
+  select(- Feld, -contains('%')) %>% 
+  janitor::adorn_totals('row', name='valides n') %>% 
+  kbl2() %>% row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+
+lueckl %>% 
+  slice_head(n=2) %>%
+  mutate(`Ges. [%]`= (Ges. / sum(Ges.))*100) %>% 
+  select(ausgefüllt, contains('%')) %>% 
+  janitor::adorn_totals('row', name='valides n') %>% 
+  kbl2() %>% row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+Untersuchung lückenlos (vollständige Definition)
+```{r vollständig }
+lueckl %>% 
+  slice_tail(n=2) %>% 
+  select(- Feld, -contains('%')) %>% 
+  janitor::adorn_totals('row', name='valides n') %>% 
+  kbl2() %>% row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+
+lueckl %>% 
+  slice_tail(n=2) %>%
+  mutate(`Ges. [%]`= (Ges. / sum(Ges.))*100) %>% 
+  select(ausgefüllt, contains('%')) %>% 
+  janitor::adorn_totals('row', name='valides n') %>% 
+  kbl2() %>% row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+
+
+### Lückenlose Dokumentation eines Gelben Hefts
+
+Überblick über vorliegende Gelbe Hefte: 
+```{r ueberblick_ausfuellstand}
+tmp <- dat %>% 
+  select(GH_ID, contains('Kopien'), contains('ausgefüllt')) %>% 
+  pivot_longer(contains('Kopien'), names_to='u_kopien', values_to = "kopien") %>%
+  pivot_longer(contains('ausgefüllt'), names_to='u_data', values_to = "data") %>%
+  mutate(u_kopien=str_extract(u_kopien, "[^_]+"), 
+         u_data=str_extract(u_data, "[^_]+")) %>% 
+  filter(u_kopien == u_data) %>%
+  select(GH_ID, u = u_kopien, kopien, data)
+
+fill <- bind_rows(fill_u2, fill_u3, fill_u4, fill_u5, fill_u6, fill_u7, fill_u7a, fill_u8, fill_u9)
+tmp <- left_join(tmp, fill, by=c('GH_ID', 'u')) %>% 
+  mutate(kopien=ifelse(kopien==1, 1, 0), 
+         data=ifelse(data==1, 1, 0), 
+         results=ifelse(data==0 | (data==1 & is.na(ges_easy)), 0, 1))
+
+tmp <- tmp %>% group_by(u) %>% 
+  summarize(kopien_data=sum(kopien), 
+            sum_data=sum(data),
+            sum_result=sum(results),
+            sum_ges_easy=sum(ges_easy, na.rm=TRUE), 
+            sum_ges_hard=sum(ges_hard, na.rm=TRUE))
+
+#transponieren
+tmp <- as.data.frame(t(tmp)) 
+# aufräumen
+rownames(tmp) <- c('', 'Kopien liegen vor', 'irgendwelche Eintragungen liegen vor', 'Ergebnisseite liegt vor', 
+                   'U lückenlos ausgefüllt (vereinfacht)', 'U lückenlos ausgefüllt (vollständig)')
+
+tmp <- tmp %>% 
+  janitor::row_to_names(row_number = 1) %>% 
+  tibble::rownames_to_column('Fallzahlen') %>% 
+  mutate_at(2:length(.), as.numeric)
+
+tmp %>% kbl2()
+```
+
+
+Lückenlosigkeit (Definition: zwischen der ersten und der letzten vorliegenden U-Untersuchung fehlt eine)
+```{r}
+tmp <- dat %>% 
+  select(GH_ID, contains('Kopien'), contains('ausgefüllt')) %>% 
+  pivot_longer(contains('Kopien'), names_to='u_kopien', values_to = "kopien") %>%
+  pivot_longer(contains('ausgefüllt'), names_to='u_data', values_to = "data") %>%
+  mutate(u_kopien=str_extract(u_kopien, "[^_]+"), 
+           u_data=str_extract(u_data, "[^_]+")) %>% 
+  filter(u_kopien == u_data) %>% 
+  select(GH_ID, u=u_data, kopien, data) %>% 
+  group_by(GH_ID) %>% 
+  mutate(u_nr = seq_along(u)) 
+
+# fehlende Kopien identifizieren
+mis_copy <- tmp %>% 
+  filter(kopien == 1) %>% 
+  mutate(diff_copy=u_nr-lag(u_nr),
+         #diff_copy=ifelse(is.na(diff_copy),1, diff_copy),
+         lueckl_copy=ifelse(any(diff_copy>1),0,1), 
+         lueckl_copy=ifelse(is.na(lueckl_copy),1,0)) %>% 
+  select(GH_ID, u, diff_copy, lueckl_copy)
+
+# fehlende Angaben identifizieren
+mis_data <- tmp %>% 
+  filter(kopien == 1 & data == 1) %>% 
+  mutate(diff_data=u_nr-lag(u_nr),
+         #diff_data=ifelse(is.na(diff_data),1,diff_data),
+         lueckl_data=ifelse(any(diff_data>1),0,1), 
+         lueckl_data=ifelse(is.na(lueckl_data),1,0)) %>% 
+  select(GH_ID, u, diff_data, lueckl_data)
+
+
+tmp <- left_join(tmp, mis_copy, by=c('GH_ID', 'u')) %>%
+  left_join(., mis_data, by=c('GH_ID', 'u')) %>%
+  filter(kopien == 1 | data == 1) %>%
+  select(GH_ID, u, diff_copy:lueckl_data) %>%
+  ungroup()
+
+
+tmp2 <- tmp %>%
+  distinct(GH_ID, .keep_all=TRUE) %>%
+  select(GH_ID, lueckl_copy, lueckl_data) %>%
+  tabyl(lueckl_copy)
+
+```
+
+fehlende Kopien
+```{r}
+tmp %>%
+  distinct(GH_ID, .keep_all=TRUE) %>%
+  select(GH_ID, lueckl_copy, lueckl_data) %>%
+  tabyl(lueckl_copy) 
+
+```
+
+fehlende Daten
+```{r}
+tmp %>%
+  distinct(GH_ID, .keep_all=TRUE) %>%
+  select(GH_ID, lueckl_copy, lueckl_data) %>%
+  tabyl(lueckl_data)
+```
+
+
+
+Welche U-Untersuchungen fehlen?
+```{r}
+missing <- left_join(mis_copy, mis_data, by=c('GH_ID', 'u')) %>% 
+  filter(diff_copy==2 | diff_data==2)
+
+table(missing$u)
+prop.table(table(missing$u))
+```
+
+
+
+to do: <br>
+- wenn die U2 nicht da ist, ist das auch  als unvollständig zählen? <br>
+- Kombination aus beiden Lückenlosigkeitskonzepten? also alle Us vorhanden und einzelne Us auch wirklich lückenlos? 
+
+  
+
+## 4.7	Nutzung durch Eltern
+
+### 4.7.4	Notizen der Eltern 
+
+Hier können Sie Ihre Notizen eintragen – Häufigkeit von Einträgen
+```{r Elterninfo}
+# Variable umbenennen
+names(dat) <- str_replace(names(dat), "Elterninfo_Freitext", "EInfo_Freitext")
+
+tmp <- abs_freq(df=dat, x='Elterninfo') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Eintrag liegt vor')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2() %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Antwort', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+  \linebreak
+
+## LESEZEICHEN
+
+Hier können Sie Ihre Notizen eintragen – Analyse der Freitexte
+```{r Elterninfo_Freitext}
+
+```
+
+

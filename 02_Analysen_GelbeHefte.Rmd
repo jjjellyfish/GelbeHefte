@@ -515,6 +515,7 @@ Gesamtergebnis: Auffälligkeiten zur Beobachtung – Auswertung der Freitexte
 ### 4.3.2	Dokumentation von erweitertem Beratungsbedarf 
 
 #### 4.3.2.1 Erweiterter Beratungsbedarf insgesamt
+ \newline
 gesamter Abschnitt "Beratung" – Anzahl Kreuze gesetzt
 ```{r Beratung}
 tmp <- abs_freq(df=dat, x='Beratung', cat_nr=5) 
@@ -538,7 +539,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   \linebreak
 
 #### 4.3.2.2	Sprachberatung
-
+ \newline
 Häufigkeit der Nicht-Erfüllung der vorgegebenen Items zur Sprache im Rahmen der orientierenden Beurteilung der Entwicklung (Item ist anzukreuzen, wenn nicht erfüllt)
 ```{r OBE_Sprachdefizit}
 tmp <- abs_freq(df=dat, x='OBE_Sprache') 
@@ -643,24 +644,30 @@ tmp2 <- tmp %>%
   select(kgewicht:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
-  select(variables, levels, freq, ratio)
+  select(variables, levels, freq, ratio) %>% 
+  pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
+  select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
-                    'Körperlänge dokumentiert', NA,
-                    'Kopfumfang dokumentiert', NA,
-                    'Auffälligkeiten dokumentiert', NA,
-                    'Vitamin K dokumentiert (vereinfacht)', NA,
-                    'Vitamin K dokumentiert (vollständig)', NA,
-                    'U-Untersuchung lückenlos (vereinfacht)', NA,
-                    'U-Untersuchung lückenlos (vollständig)', NA)
+tmp2$variables <- c('Körpergewicht dokumentiert', 
+                    'Körperlänge dokumentiert', 
+                    'Kopfumfang dokumentiert', 
+                    'Auffälligkeiten dokumentiert', 
+                    'Vitamin K dokumentiert (vereinfacht)',
+                    'Vitamin K dokumentiert (vollständig)', 
+                    'U-Untersuchung lückenlos (vereinfacht)', 
+                    'U-Untersuchung lückenlos (vollständig)')
 
-tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
-names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
-lueckl <- tmp2 %>% slice_tail(n=4)
+lueckl <- tmp2 %>% slice_tail(n=2) %>% 
+  pivot_longer(cols=c('Ja [n]', 'Nein [n]', 'Ja [%]', 'Nein [%]'), 
+               names_to = c('ausgefüllt','value'), 
+               names_sep = ' ', values_to = c('n')) %>% 
+  pivot_wider(names_from = 'value', values_from = 'n')
+  
 
-rowline_at <- nrow(tmp2) - 4
+rowline_at <- nrow(tmp2) - 2
 tmp2 %>% kbl2() %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE) 
 ```
@@ -723,25 +730,32 @@ tmp2 <- tmp %>%
   select(kgewicht:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
-  select(variables, levels, freq, ratio)
+  select(variables, levels, freq, ratio) %>% 
+  pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
+  select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
-                    'Körperlänge dokumentiert', NA,
-                    'Kopfumfang dokumentiert', NA,
-                    'Auffälligkeiten dokumentiert', NA,
-                    'Vitamin K dokumentiert (vereinfacht)', NA,
-                    'Vitamin K dokumentiert (vollständig)', NA,
-                    'U-Untersuchung lückenlos (vereinfacht)', NA,
-                    'U-Untersuchung lückenlos (vollständig)', NA)
+tmp2$variables <- c('Körpergewicht dokumentiert', 
+                    'Körperlänge dokumentiert',
+                    'Kopfumfang dokumentiert',
+                    'Auffälligkeiten dokumentiert',
+                    'Vitamin K dokumentiert (vereinfacht)',
+                    'Vitamin K dokumentiert (vollständig)',
+                    'U-Untersuchung lückenlos (vereinfacht)',
+                    'U-Untersuchung lückenlos (vollständig)')
 
-tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
-names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
-tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
-lueckl <- bind_cols(lueckl, tmp)
+tmp <- tmp2 %>% slice_tail(n=2) %>% 
+  pivot_longer(cols=c('Ja [n]', 'Nein [n]', 'Ja [%]', 'Nein [%]'), 
+               names_to = c('ausgefüllt','value'), 
+               names_sep = ' ', values_to = c('n')) %>% 
+  pivot_wider(names_from = 'value', values_from = 'n')
 
-rowline_at <- nrow(tmp2) - 4
+lueckl <- bind_cols(lueckl, tmp[3:length(tmp)]) 
+
+
+rowline_at <- nrow(tmp2) - 2
 tmp2 %>% kbl2() %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
@@ -803,25 +817,33 @@ tmp2 <- tmp %>%
   select(kgewicht:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
-  select(variables, levels, freq, ratio)
+  select(variables, levels, freq, ratio) %>% 
+  pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
+  select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
-                    'Körperlänge dokumentiert', NA,
-                    'Kopfumfang dokumentiert', NA,
-                    'Auffälligkeiten dokumentiert', NA,
-                    'Impfstatus dokumentiert (vereinfacht)', NA,
-                    'Impfstatus dokumentiert (vollständig)', NA,
-                    'U-Untersuchung lückenlos (vereinfacht)', NA,
-                    'U-Untersuchung lückenlos (vollständig)', NA)
+tmp2$variables <- c('Körpergewicht dokumentiert',
+                    'Körperlänge dokumentiert',
+                    'Kopfumfang dokumentiert',
+                    'Auffälligkeiten dokumentiert',
+                    'Impfstatus dokumentiert (vereinfacht)',
+                    'Impfstatus dokumentiert (vollständig)',
+                    'U-Untersuchung lückenlos (vereinfacht)', 
+                    'U-Untersuchung lückenlos (vollständig)')
 
-tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
-names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+
+names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
-tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
-lueckl <- bind_cols(lueckl, tmp)
+tmp <- tmp2 %>% slice_tail(n=2) %>% 
+  pivot_longer(cols=c('Ja [n]', 'Nein [n]', 'Ja [%]', 'Nein [%]'), 
+               names_to = c('ausgefüllt','value'), 
+               names_sep = ' ', values_to = c('n')) %>% 
+  pivot_wider(names_from = 'value', values_from = 'n')
 
-rowline_at <- nrow(tmp2) - 4
+lueckl <- bind_cols(lueckl, tmp[3:length(tmp)]) 
+
+
+rowline_at <- nrow(tmp2) - 2
 tmp2 %>% kbl2() %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
@@ -883,32 +905,30 @@ tmp2 <- tmp %>%
   select(kgewicht:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
-  select(variables, levels, freq, ratio)
+  select(variables, levels, freq, ratio) %>% 
+  pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
+  select(variables, contains('1'), contains('0'))
 
-## fehlende Auspärgungen vervollständigen
-# ganz furchtbar, aber keine bessere Lösung gefunden
-tmp1 <- tmp2 %>% slice_head(n=3)
-tmp2 <- tmp2 %>% slice_tail(n=-3)
-tmp1 <- tmp1 %>% add_row(variables='klaenge', levels='0', freq=0, ratio=0)
-tmp2 <- bind_rows(tmp1, tmp2)
+tmp2$variables <- c('Körpergewicht dokumentiert', 
+                    'Körperlänge dokumentiert',
+                    'Kopfumfang dokumentiert',
+                    'Auffälligkeiten dokumentiert',
+                    'Impfstatus dokumentiert (vereinfacht)',
+                    'Impfstatus dokumentiert (vollständig)',
+                    'U-Untersuchung lückenlos (vereinfacht)',
+                    'U-Untersuchung lückenlos (vollständig)')
 
-tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
-                    'Körperlänge dokumentiert', NA,
-                    'Kopfumfang dokumentiert', NA,
-                    'Auffälligkeiten dokumentiert', NA,
-                    'Impfstatus dokumentiert (vereinfacht)', NA,
-                    'Impfstatus dokumentiert (vollständig)', NA,
-                    'U-Untersuchung lückenlos (vereinfacht)', NA,
-                    'U-Untersuchung lückenlos (vollständig)', NA)
-
-tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
-names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
-tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
-lueckl <- bind_cols(lueckl, tmp)
+tmp <- tmp2 %>% slice_tail(n=2) %>% 
+  pivot_longer(cols=c('Ja [n]', 'Nein [n]', 'Ja [%]', 'Nein [%]'), 
+               names_to = c('ausgefüllt','value'), 
+               names_sep = ' ', values_to = c('n')) %>% 
+  pivot_wider(names_from = 'value', values_from = 'n')
+lueckl <- bind_cols(lueckl, tmp[3:length(tmp)]) 
 
-rowline_at <- nrow(tmp2) - 4
+rowline_at <- nrow(tmp2) - 2
 tmp2 %>% kbl2() %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
@@ -971,25 +991,30 @@ tmp2 <- tmp %>%
   select(kgewicht:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
-  select(variables, levels, freq, ratio)
+  select(variables, levels, freq, ratio) %>% 
+  pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
+  select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
-                    'Körperlänge dokumentiert', NA,
-                    'Kopfumfang dokumentiert', NA,
-                    'Auffälligkeiten dokumentiert', NA,
-                    'Impfstatus dokumentiert (vereinfacht)', NA,
-                    'Impfstatus dokumentiert (vollständig)', NA,
-                    'U-Untersuchung lückenlos (vereinfacht)', NA,
-                    'U-Untersuchung lückenlos (vollständig)', NA)
+tmp2$variables <- c('Körpergewicht dokumentiert',
+                    'Körperlänge dokumentiert',
+                    'Kopfumfang dokumentiert',
+                    'Auffälligkeiten dokumentiert',
+                    'Impfstatus dokumentiert (vereinfacht)',
+                    'Impfstatus dokumentiert (vollständig)',
+                    'U-Untersuchung lückenlos (vereinfacht)',
+                    'U-Untersuchung lückenlos (vollständig)')
 
-tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
-names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
-tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
-lueckl <- bind_cols(lueckl, tmp)
+tmp <- tmp2 %>% slice_tail(n=2) %>% 
+  pivot_longer(cols=c('Ja [n]', 'Nein [n]', 'Ja [%]', 'Nein [%]'), 
+               names_to = c('ausgefüllt','value'), 
+               names_sep = ' ', values_to = c('n')) %>% 
+  pivot_wider(names_from = 'value', values_from = 'n')
+lueckl <- bind_cols(lueckl, tmp[3:length(tmp)]) 
 
-rowline_at <- nrow(tmp2) - 4
+rowline_at <- nrow(tmp2) - 2
 tmp2 %>% kbl2() %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
@@ -1053,26 +1078,31 @@ tmp2 <- tmp %>%
   select(kgewicht:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
-  select(variables, levels, freq, ratio)
+  select(variables, levels, freq, ratio) %>% 
+  pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
+  select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
-                    'Körperlänge dokumentiert', NA,
-                    'Kopfumfang dokumentiert', NA,
-                    'BMI dokumentiert', NA,
-                    'Auffälligkeiten dokumentiert', NA,
-                    'Impfstatus dokumentiert (vereinfacht)', NA,
-                    'Impfstatus dokumentiert (vollständig)', NA,
-                    'U-Untersuchung lückenlos (vereinfacht)', NA,
-                    'U-Untersuchung lückenlos (vollständig)', NA)
+tmp2$variables <- c('Körpergewicht dokumentiert', 
+                    'Körperlänge dokumentiert',
+                    'Kopfumfang dokumentiert',
+                    'BMI dokumentiert',
+                    'Auffälligkeiten dokumentiert',
+                    'Impfstatus dokumentiert (vereinfacht)',
+                    'Impfstatus dokumentiert (vollständig)',
+                    'U-Untersuchung lückenlos (vereinfacht)',
+                    'U-Untersuchung lückenlos (vollständig)')
 
-tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
-names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
-tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
-lueckl <- bind_cols(lueckl, tmp)
+tmp <- tmp2 %>% slice_tail(n=2) %>% 
+  pivot_longer(cols=c('Ja [n]', 'Nein [n]', 'Ja [%]', 'Nein [%]'), 
+               names_to = c('ausgefüllt','value'), 
+               names_sep = ' ', values_to = c('n')) %>% 
+  pivot_wider(names_from = 'value', values_from = 'n')
+lueckl <- bind_cols(lueckl, tmp[3:length(tmp)]) 
 
-rowline_at <- nrow(tmp2) - 4
+rowline_at <- nrow(tmp2) - 2
 tmp2 %>% kbl2() %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
@@ -1134,26 +1164,31 @@ tmp2 <- tmp %>%
   select(kgewicht:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
-  select(variables, levels, freq, ratio)
+  select(variables, levels, freq, ratio) %>% 
+  pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
+  select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
-                    'Körperlänge dokumentiert', NA,
-                    'BMI dokumentiert', NA,
-                    'Auffälligkeiten dokumentiert', NA,
-                    'Impfstatus dokumentiert (vereinfacht)', NA,
-                    'Impfstatus dokumentiert (vollständig)', NA,
-                    'U-Untersuchung lückenlos (vereinfacht)', NA,
-                    'U-Untersuchung lückenlos (vollständig)', NA)
+tmp2$variables <- c('Körpergewicht dokumentiert',
+                    'Körperlänge dokumentiert',
+                    'BMI dokumentiert',
+                    'Auffälligkeiten dokumentiert',
+                    'Impfstatus dokumentiert (vereinfacht)',
+                    'Impfstatus dokumentiert (vollständig)',
+                    'U-Untersuchung lückenlos (vereinfacht)',
+                    'U-Untersuchung lückenlos (vollständig)')
 
 
-tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
-names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
-tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
-lueckl <- bind_cols(lueckl, tmp)
+tmp <- tmp2 %>% slice_tail(n=2) %>% 
+  pivot_longer(cols=c('Ja [n]', 'Nein [n]', 'Ja [%]', 'Nein [%]'), 
+               names_to = c('ausgefüllt','value'), 
+               names_sep = ' ', values_to = c('n')) %>% 
+  pivot_wider(names_from = 'value', values_from = 'n')
+lueckl <- bind_cols(lueckl, tmp[3:length(tmp)]) 
 
-rowline_at <- nrow(tmp2) - 4
+rowline_at <- nrow(tmp2) - 2
 tmp2 %>% kbl2() %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
@@ -1215,26 +1250,31 @@ tmp2 <- tmp %>%
   select(kgewicht:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
-  select(variables, levels, freq, ratio)
+  select(variables, levels, freq, ratio) %>% 
+  pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
+  select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
-                    'Körperlänge dokumentiert', NA,
-                    'BMI dokumentiert', NA,
-                    'Auffälligkeiten dokumentiert', NA,
-                    'Impfstatus dokumentiert (vereinfacht)', NA,
-                    'Impfstatus dokumentiert (vollständig)', NA,
-                    'U-Untersuchung lückenlos (vereinfacht)', NA,
-                    'U-Untersuchung lückenlos (vollständig)', NA)
+tmp2$variables <- c('Körpergewicht dokumentiert',
+                    'Körperlänge dokumentiert',
+                    'BMI dokumentiert',
+                    'Auffälligkeiten dokumentiert',
+                    'Impfstatus dokumentiert (vereinfacht)',
+                    'Impfstatus dokumentiert (vollständig)',
+                    'U-Untersuchung lückenlos (vereinfacht)',
+                    'U-Untersuchung lückenlos (vollständig)')
 
 
-tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
-names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
-tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
-lueckl <- bind_cols(lueckl, tmp)
+tmp <- tmp2 %>% slice_tail(n=2) %>% 
+  pivot_longer(cols=c('Ja [n]', 'Nein [n]', 'Ja [%]', 'Nein [%]'), 
+               names_to = c('ausgefüllt','value'), 
+               names_sep = ' ', values_to = c('n')) %>% 
+  pivot_wider(names_from = 'value', values_from = 'n')
+lueckl <- bind_cols(lueckl, tmp[3:length(tmp)]) 
 
-rowline_at <- nrow(tmp2) - 4
+rowline_at <- nrow(tmp2) - 2
 tmp2 %>% kbl2() %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
@@ -1296,38 +1336,31 @@ tmp2 <- tmp %>%
   select(kgewicht:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
-  select(variables, levels, freq, ratio)
+  select(variables, levels, freq, ratio) %>% 
+  pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
+  select(variables, contains('1'), contains('0'))
 
-## fehlende Auspärgungen vervollständigen
-# ganz furchtbar, aber keine bessere Lösung gefunden
-tmp1 <- tmp2 %>% slice_head(n=1)
-tmp1 <- tmp1 %>% add_row(variables='kgewicht', levels='0', freq=0, ratio=0)
-
-tmp3 <- tmp2 %>% slice(2)
-tmp3 <- tmp3 %>% add_row(variables='klaenge', levels='0', freq=0, ratio=0)
-
-tmp2 <- tmp2 %>% slice_tail(n=-2)
-tmp2 <- bind_rows(tmp1, tmp3, tmp2)
-
-
-tmp2$variables <- c('Körpergewicht dokumentiert', NA, 
-                    'Körperlänge dokumentiert', NA,
-                    'BMI dokumentiert', NA,
-                    'Auffälligkeiten dokumentiert', NA,
-                    'Impfstatus dokumentiert (vereinfacht)', NA,
-                    'Impfstatus dokumentiert (vollständig)', NA,
-                    'U-Untersuchung lückenlos (vereinfacht)', NA,
-                    'U-Untersuchung lückenlos (vollständig)', NA)
+tmp2$variables <- c('Körpergewicht dokumentiert', 
+                    'Körperlänge dokumentiert',
+                    'BMI dokumentiert',
+                    'Auffälligkeiten dokumentiert',
+                    'Impfstatus dokumentiert (vereinfacht)',
+                    'Impfstatus dokumentiert (vollständig)',
+                    'U-Untersuchung lückenlos (vereinfacht)',
+                    'U-Untersuchung lückenlos (vollständig)')
 
 
-tmp2$levels <- rep(c('Ja', 'Nein'), nrow(tmp2)/2)
-names(tmp2) <- c('Feld', 'ausgefüllt', 'n', '%')
+names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
-tmp <- tmp2 %>% select(n, `%`) %>% slice_tail(n=4)
-lueckl <- bind_cols(lueckl, tmp)
+tmp <- tmp2 %>% slice_tail(n=2) %>% 
+  pivot_longer(cols=c('Ja [n]', 'Nein [n]', 'Ja [%]', 'Nein [%]'), 
+               names_to = c('ausgefüllt','value'), 
+               names_sep = ' ', values_to = c('n')) %>% 
+  pivot_wider(names_from = 'value', values_from = 'n')
+lueckl <- bind_cols(lueckl, tmp[3:length(tmp)]) 
 
-rowline_at <- nrow(tmp2) - 4
+rowline_at <- nrow(tmp2) - 2
 tmp2 %>% kbl2() %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```

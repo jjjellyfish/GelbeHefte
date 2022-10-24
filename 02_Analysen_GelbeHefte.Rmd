@@ -588,7 +588,6 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 ## 4.4	Lückenlosigkeit der Dokumentation
 
 ### Lückenlose Dokumentation einer U-Untersuchung
-**U2**
 ```{r u2, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
 vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
@@ -657,7 +656,7 @@ tmp2$variables <- c('Körpergewicht dokumentiert',
                     'U-Untersuchung lückenlos (vereinfacht)', 
                     'U-Untersuchung lückenlos (vollständig)')
 
-names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
+names(tmp2) <- c('U2', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
 lueckl <- tmp2 %>% slice_tail(n=2) %>% 
@@ -673,13 +672,11 @@ tmp2 %>% kbl2() %>%
 ```
   \linebreak
 
-
-**U3**
 ```{r u3, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
 vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
           'Auffaelligkeiten', 'VitaminK_ja', 
-          'VitaminK_Dosis_2mg', 'VitaminK_abwDosis', 'VitaminK_nein')
+          'VitaminK_Dosis_2mg', 'VitaminK_abwDosis', 'VitaminK_nein', 'OBE_altersgem')
 
 tmp <- dat %>% 
   select(GH_ID, contains('ausgefüllt'), matches(vars), 
@@ -697,6 +694,7 @@ names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U3_].+")
 ## Kriterien umsetzen
 tmp <- tmp %>% 
   mutate(
+    obe = ifelse(OBE_altersgem == 1, 1, 0), 
     kgewicht = ifelse(KGewicht == 1, 1, 0),
     klaenge =  ifelse(KLaenge == 1, 1, 0),
     kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
@@ -713,11 +711,11 @@ tmp <- tmp %>%
       TRUE ~ 0
     ),
     ges_easy = case_when(
-      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & vitk_easy == 1 ~ 1, 
+      obe == 1 &kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & vitk_easy == 1 ~ 1, 
       TRUE ~ 0
     ),
     ges_hard = case_when(
-      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & vitk_hard == 1 ~ 1, 
+      obe == 1 & kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & vitk_hard == 1 ~ 1, 
       TRUE ~ 0
     )
   )
@@ -727,14 +725,15 @@ tmp <- tmp %>%
 fill_u3 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U3')
 
 tmp2 <- tmp %>% 
-  select(kgewicht:ges_hard) %>% 
+  select(obe:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
   select(variables, levels, freq, ratio) %>% 
   pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
   select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', 
+tmp2$variables <- c('Ergebnis OBE dokumentiert',
+                    'Körpergewicht dokumentiert', 
                     'Körperlänge dokumentiert',
                     'Kopfumfang dokumentiert',
                     'Auffälligkeiten dokumentiert',
@@ -743,7 +742,7 @@ tmp2$variables <- c('Körpergewicht dokumentiert',
                     'U-Untersuchung lückenlos (vereinfacht)',
                     'U-Untersuchung lückenlos (vollständig)')
 
-names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
+names(tmp2) <- c('U3', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
 tmp <- tmp2 %>% slice_tail(n=2) %>% 
@@ -761,11 +760,9 @@ tmp2 %>% kbl2() %>%
 ```
   \linebreak
 
-
-**U4**
 ```{r u4, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
-vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
+vars <- c('OBE_altersgem','KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
           'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
 
 tmp <- dat %>% 
@@ -784,6 +781,7 @@ names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U4_].+")
 ## Kriterien umsetzen
 tmp <- tmp %>% 
   mutate(
+    obe = ifelse(OBE_altersgem == 1, 1, 0),
     kgewicht = ifelse(KGewicht == 1, 1, 0),
     klaenge =  ifelse(KLaenge == 1, 1, 0),
     kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
@@ -801,11 +799,11 @@ tmp <- tmp %>%
       TRUE ~ 0
     ),
     ges_easy = case_when(
-      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_easy == 1 ~ 1, 
       TRUE ~ 0
     ),
     ges_hard = case_when(
-      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      obe == 1 & kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_hard == 1 ~ 1, 
       TRUE ~ 0
     )
   )
@@ -814,14 +812,15 @@ tmp <- tmp %>%
 fill_u4 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U4')
 
 tmp2 <- tmp %>% 
-  select(kgewicht:ges_hard) %>% 
+  select(obe:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
   select(variables, levels, freq, ratio) %>% 
   pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
   select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert',
+tmp2$variables <- c('Ergebnis OBE dokumentiert',
+                    'Körpergewicht dokumentiert',
                     'Körperlänge dokumentiert',
                     'Kopfumfang dokumentiert',
                     'Auffälligkeiten dokumentiert',
@@ -831,7 +830,7 @@ tmp2$variables <- c('Körpergewicht dokumentiert',
                     'U-Untersuchung lückenlos (vollständig)')
 
 
-names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
+names(tmp2) <- c('U4', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
 tmp <- tmp2 %>% slice_tail(n=2) %>% 
@@ -849,11 +848,9 @@ tmp2 %>% kbl2() %>%
 ```
   \linebreak
 
-
-**U5**
 ```{r u5, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
-vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
+vars <- c('OBE_altersgem','KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
           'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
 
 tmp <- dat %>% 
@@ -872,6 +869,7 @@ names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U5_].+")
 ## Kriterien umsetzen
 tmp <- tmp %>% 
   mutate(
+    obe = ifelse(OBE_altersgem == 1, 1, 0),
     kgewicht = ifelse(KGewicht == 1, 1, 0),
     klaenge =  ifelse(KLaenge == 1, 1, 0),
     kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
@@ -889,11 +887,11 @@ tmp <- tmp %>%
       TRUE ~ 0
     ),
     ges_easy = case_when(
-      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_easy == 1 ~ 1, 
       TRUE ~ 0
     ),
     ges_hard = case_when(
-      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_hard == 1 ~ 1, 
       TRUE ~ 0
     )
   )
@@ -902,14 +900,15 @@ tmp <- tmp %>%
 fill_u5 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U5')
 
 tmp2 <- tmp %>% 
-  select(kgewicht:ges_hard) %>% 
+  select(obe:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
   select(variables, levels, freq, ratio) %>% 
   pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
   select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', 
+tmp2$variables <- c('Ergebnis OBE dokumentiert',
+                    'Körpergewicht dokumentiert', 
                     'Körperlänge dokumentiert',
                     'Kopfumfang dokumentiert',
                     'Auffälligkeiten dokumentiert',
@@ -918,7 +917,7 @@ tmp2$variables <- c('Körpergewicht dokumentiert',
                     'U-Untersuchung lückenlos (vereinfacht)',
                     'U-Untersuchung lückenlos (vollständig)')
 
-names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
+names(tmp2) <- c('U5', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
 tmp <- tmp2 %>% slice_tail(n=2) %>% 
@@ -934,11 +933,9 @@ tmp2 %>% kbl2() %>%
 ```
   \linebreak
 
-
-**U6**
 ```{r u6, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
-vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
+vars <- c('OBE_altersgem','KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
           'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
 
 tmp <- dat %>% 
@@ -958,6 +955,7 @@ names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U6_].+")
 ## Kriterien umsetzen
 tmp <- tmp %>% 
   mutate(
+    obe = ifelse(OBE_altersgem == 1, 1, 0),
     kgewicht = ifelse(KGewicht == 1, 1, 0),
     klaenge =  ifelse(KLaenge == 1, 1, 0),
     kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
@@ -975,11 +973,11 @@ tmp <- tmp %>%
       TRUE ~ 0
     ),
     ges_easy = case_when(
-      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_easy == 1 ~ 1, 
       TRUE ~ 0
     ),
     ges_hard = case_when(
-      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & kumpfang == 1 & auff == 1 & impf_hard == 1 ~ 1, 
       TRUE ~ 0
     )
   )
@@ -988,14 +986,15 @@ tmp <- tmp %>%
 fill_u6 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U6')
 
 tmp2 <- tmp %>% 
-  select(kgewicht:ges_hard) %>% 
+  select(obe:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
   select(variables, levels, freq, ratio) %>% 
   pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
   select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert',
+tmp2$variables <- c('Ergebnis OBE dokumentiert',
+                    'Körpergewicht dokumentiert',
                     'Körperlänge dokumentiert',
                     'Kopfumfang dokumentiert',
                     'Auffälligkeiten dokumentiert',
@@ -1004,7 +1003,7 @@ tmp2$variables <- c('Körpergewicht dokumentiert',
                     'U-Untersuchung lückenlos (vereinfacht)',
                     'U-Untersuchung lückenlos (vollständig)')
 
-names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
+names(tmp2) <- c('U6', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
 tmp <- tmp2 %>% slice_tail(n=2) %>% 
@@ -1020,11 +1019,9 @@ tmp2 %>% kbl2() %>%
 ```
   \linebreak
 
-
-**U7**
 ```{r u7, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
-vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'BMI','keineAuffaelligkeiten', 
+vars <- c('OBE_altersgem','KGewicht', 'KLaenge', 'Kopfumfang', 'BMI','keineAuffaelligkeiten', 
           'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
 
 tmp <- dat %>% 
@@ -1044,6 +1041,7 @@ names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U7_].+")
 ## Kriterien umsetzen
 tmp <- tmp %>% 
   mutate(
+    obe = ifelse(OBE_altersgem == 1, 1, 0),
     kgewicht = ifelse(KGewicht == 1, 1, 0),
     klaenge =  ifelse(KLaenge == 1, 1, 0),
     kumpfang = ifelse(Kopfumfang == 1, 1, 0), 
@@ -1062,11 +1060,11 @@ tmp <- tmp %>%
       TRUE ~ 0
     ),
     ges_easy = case_when(
-      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & kumpfang == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
       TRUE ~ 0
     ),
     ges_hard = case_when(
-      kgewicht == 1 & klaenge == 1 & kumpfang == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & kumpfang == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
       TRUE ~ 0
     )
   )
@@ -1075,14 +1073,15 @@ tmp <- tmp %>%
 fill_u7 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U7')
 
 tmp2 <- tmp %>% 
-  select(kgewicht:ges_hard) %>% 
+  select(obe:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
   select(variables, levels, freq, ratio) %>% 
   pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
   select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', 
+tmp2$variables <- c('Ergebnis OBE dokumentiert',
+                    'Körpergewicht dokumentiert', 
                     'Körperlänge dokumentiert',
                     'Kopfumfang dokumentiert',
                     'BMI dokumentiert',
@@ -1092,7 +1091,7 @@ tmp2$variables <- c('Körpergewicht dokumentiert',
                     'U-Untersuchung lückenlos (vereinfacht)',
                     'U-Untersuchung lückenlos (vollständig)')
 
-names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
+names(tmp2) <- c('U7', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
 tmp <- tmp2 %>% slice_tail(n=2) %>% 
@@ -1108,10 +1107,9 @@ tmp2 %>% kbl2() %>%
 ```
   \linebreak
 
-**U7a**
 ```{r u7a, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
-vars <- c('KGewicht', 'KLaenge', 'BMI','keineAuffaelligkeiten', 
+vars <- c('OBE_altersgem','KGewicht', 'KLaenge', 'BMI','keineAuffaelligkeiten', 
           'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
 
 tmp <- dat %>% 
@@ -1131,6 +1129,7 @@ names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U7a_].+")
 ## Kriterien umsetzen
 tmp <- tmp %>% 
   mutate(
+    obe = ifelse(OBE_altersgem == 1, 1, 0),
     kgewicht = ifelse(KGewicht == 1, 1, 0),
     klaenge =  ifelse(KLaenge == 1, 1, 0),
     bmi = ifelse(BMI == 1, 1, 0),
@@ -1148,11 +1147,11 @@ tmp <- tmp %>%
       TRUE ~ 0
     ),
     ges_easy = case_when(
-      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
       TRUE ~ 0
     ),
     ges_hard = case_when(
-      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
       TRUE ~ 0
     )
   )
@@ -1161,14 +1160,15 @@ tmp <- tmp %>%
 fill_u7a <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U7a')
 
 tmp2 <- tmp %>% 
-  select(kgewicht:ges_hard) %>% 
+  select(obe:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
   select(variables, levels, freq, ratio) %>% 
   pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
   select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert',
+tmp2$variables <- c('Ergebnis OBE dokumentiert',
+                    'Körpergewicht dokumentiert',
                     'Körperlänge dokumentiert',
                     'BMI dokumentiert',
                     'Auffälligkeiten dokumentiert',
@@ -1178,7 +1178,7 @@ tmp2$variables <- c('Körpergewicht dokumentiert',
                     'U-Untersuchung lückenlos (vollständig)')
 
 
-names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
+names(tmp2) <- c('U7a', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
 tmp <- tmp2 %>% slice_tail(n=2) %>% 
@@ -1194,10 +1194,9 @@ tmp2 %>% kbl2() %>%
 ```
   \linebreak
 
-**U8**
 ```{r u8, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
-vars <- c('KGewicht', 'KLaenge', 'BMI','keineAuffaelligkeiten', 
+vars <- c('OBE_altersgem','KGewicht', 'KLaenge', 'BMI','keineAuffaelligkeiten', 
           'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
 
 tmp <- dat %>% 
@@ -1217,6 +1216,7 @@ names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U8_].+")
 ## Kriterien umsetzen
 tmp <- tmp %>% 
   mutate(
+    obe = ifelse(OBE_altersgem == 1, 1, 0),
     kgewicht = ifelse(KGewicht == 1, 1, 0),
     klaenge =  ifelse(KLaenge == 1, 1, 0),
     bmi = ifelse(BMI == 1, 1, 0),
@@ -1234,11 +1234,11 @@ tmp <- tmp %>%
       TRUE ~ 0
     ),
     ges_easy = case_when(
-      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
       TRUE ~ 0
     ),
     ges_hard = case_when(
-      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
       TRUE ~ 0
     )
   )
@@ -1247,14 +1247,15 @@ tmp <- tmp %>%
 fill_u8 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U8')
 
 tmp2 <- tmp %>% 
-  select(kgewicht:ges_hard) %>% 
+  select(obe:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
   select(variables, levels, freq, ratio) %>% 
   pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
   select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert',
+tmp2$variables <- c('Ergebnis OBE dokumentiert',
+                    'Körpergewicht dokumentiert',
                     'Körperlänge dokumentiert',
                     'BMI dokumentiert',
                     'Auffälligkeiten dokumentiert',
@@ -1264,7 +1265,7 @@ tmp2$variables <- c('Körpergewicht dokumentiert',
                     'U-Untersuchung lückenlos (vollständig)')
 
 
-names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
+names(tmp2) <- c('U8', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
 tmp <- tmp2 %>% slice_tail(n=2) %>% 
@@ -1280,10 +1281,9 @@ tmp2 %>% kbl2() %>%
 ```
   \linebreak
 
-**U9**
 ```{r u9, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
-vars <- c('KGewicht', 'KLaenge', 'BMI','keineAuffaelligkeiten', 
+vars <- c('OBE_altersgem','KGewicht', 'KLaenge', 'BMI','keineAuffaelligkeiten', 
           'Auffaelligkeiten', 'Impfstatus_ja','Impfstatus_nein', 'Impfstatus_fehlend')
 
 tmp <- dat %>% 
@@ -1303,6 +1303,7 @@ names(tmp)[2:length(tmp)] <- str_extract(names(tmp)[2:length(tmp)], "[^U9_].+")
 ## Kriterien umsetzen
 tmp <- tmp %>% 
   mutate(
+    obe = ifelse(OBE_altersgem == 1, 1, 0),
     kgewicht = ifelse(KGewicht == 1, 1, 0),
     klaenge =  ifelse(KLaenge == 1, 1, 0),
     bmi = ifelse(BMI == 1, 1, 0),
@@ -1320,11 +1321,11 @@ tmp <- tmp %>%
       TRUE ~ 0
     ),
     ges_easy = case_when(
-      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_easy == 1 ~ 1, 
       TRUE ~ 0
     ),
     ges_hard = case_when(
-      kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
+      obe==1 & kgewicht == 1 & klaenge == 1 & bmi == 1 & auff == 1 & impf_hard == 1 ~ 1, 
       TRUE ~ 0
     )
   )
@@ -1333,14 +1334,15 @@ tmp <- tmp %>%
 fill_u9 <- tmp %>% select(GH_ID, ges_easy, ges_hard) %>% mutate(u='U9')
 
 tmp2 <- tmp %>% 
-  select(kgewicht:ges_hard) %>% 
+  select(obe:ges_hard) %>% 
   mutate_all(., ~ as.factor(.)) %>% 
   dlookr::diagnose_category(.) %>% 
   select(variables, levels, freq, ratio) %>% 
   pivot_wider(names_from = levels, values_from=c('freq', 'ratio')) %>% 
   select(variables, contains('1'), contains('0'))
 
-tmp2$variables <- c('Körpergewicht dokumentiert', 
+tmp2$variables <- c('Ergebnis OBE dokumentiert',
+                    'Körpergewicht dokumentiert', 
                     'Körperlänge dokumentiert',
                     'BMI dokumentiert',
                     'Auffälligkeiten dokumentiert',
@@ -1350,7 +1352,7 @@ tmp2$variables <- c('Körpergewicht dokumentiert',
                     'U-Untersuchung lückenlos (vollständig)')
 
 
-names(tmp2) <- c('Feld', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
+names(tmp2) <- c('U9', 'Ja [n]', 'Ja [%]', 'Nein [n]', 'Nein [%]')
 
 # Lückenlosigkeit gesamt ablegen
 tmp <- tmp2 %>% slice_tail(n=2) %>% 
@@ -1366,8 +1368,10 @@ tmp2 %>% kbl2() %>%
 ```
 
 ```{r Lueckenlosigkeite_U_gesamt}
-names(lueckl)[3:length(lueckl)] <- c('U2', 'U2 [%]', 'U3', 'U3 [%]', 'U4', 'U4 [%]', 'U5', 'U5 [%]', 'U6', 'U6 [%]', 
-                                     'U7', 'U7 [%]', 'U7a', 'U7a [%]', 'U8', 'U8 [%]', 'U9', 'U9 [%]')
+names(lueckl)[1:length(lueckl)] <- c('Feld', 'ausgefüllt', 'U2', 'U2 [%]', 'U3', 'U3 [%]', 
+                                     'U4', 'U4 [%]', 'U5', 'U5 [%]', 'U6', 'U6 [%]', 
+                                     'U7', 'U7 [%]', 'U7a', 'U7a [%]', 'U8', 'U8 [%]',
+                                     'U9', 'U9 [%]')
 
 lueckl <- lueckl %>% 
   mutate(Ges.=rowSums(select(., U2, U3, U4, U5, U6, U7, U7a, U8, U9), na.rm = TRUE))

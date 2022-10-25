@@ -1467,105 +1467,133 @@ tmp <- tmp %>%
   mutate_at(2:length(.), as.numeric) %>%
   janitor::adorn_totals('col', name='Ges.') #%>%
   
-tmp %>% kbl2(col.names= c('Fallzahlen', paste(names(.)[2:length(.)], '[n]', sep=' ')))
+tmp %>% kbl2(col.names= c('Fallzahlen', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+  kable_styling(latex_options="scale_down") %>% 
+  kable_styling(latex_options = "HOLD_position")
 ```
 
 
 #### Defintion: von erster U bis zur letzten U
 Lückenlosigkeit (Definition: zwischen der ersten und der letzten vorliegenden U-Untersuchung fehlt eine)
-```{r}
+```{r Lueckenlosigkeit_Heft_Def1, echo=FALSE, warning=FALSE, message=FALSE}
+### data prep
 # Datensatz mit Ausfüll-Flow aufgreifen und U nummerieren
 tmp <- lueckl_heft %>% 
   group_by(GH_ID) %>%
   mutate(u_nr = seq_along(u)) 
 
-# fehlende Kopien identifizieren
-mis_copy <- tmp %>% 
-  #nur noch IDs mit Kopien behalten
+# erste U mit Kopien bestimmen
+tmp2 <- tmp %>% 
   filter(kopien == 1) %>% 
-  mutate(
-    #bleiben nicht-aufeinenader folgende Us übrig?
-    diff=u_nr-lag(u_nr),
-    #Marker vergeben (später an Gesamtdatensatz dranhängen)
-    lueckl=ifelse(any(diff>1),0,1),
-    lueckl=ifelse(is.na(lueckl),1,0)) %>% 
-  select(GH_ID, u, diff_copy=diff, lueckl_copy=lueckl)
+  slice_min(order_by = u_nr, n=1) %>% 
+  mutate(u_min =u_nr) 
+tmp <- left_join(tmp, tmp2)
+
+# letzte U mit Kopien bestimmen
+tmp2 <- tmp %>%
+  filter(kopien == 1) %>%
+  slice_max(order_by = u_nr, n=1) %>%
+  mutate(u_max = u_nr) 
+tmp <- left_join(tmp, tmp2)
+
+# auffüllen & alle Us davor und danach entfernen --> Grundgesamtheit
+tmp <- tmp %>%
+  group_by(GH_ID) %>%
+  tidyr::fill(u_min, .direction='down') %>% #default 
+  tidyr::fill(u_max, .direction='up') %>%
+  filter(u_nr >= u_min & u_nr <= u_max)
+
+#***************************
+### Lückenlosigkeit operationalisieren
+# fehlende Kopien identifizieren
+tmp <- tmp %>% 
+  group_by(GH_ID) %>% 
+  mutate(lueckl_copy=ifelse(any(kopien==0),0,1))
 
 # fehlende Angaben identifizieren
 mis_data <- tmp %>% 
-  filter(kopien == 1 & data == 1) %>% 
-  mutate(diff=u_nr-lag(u_nr),
-         lueckl=ifelse(any(diff>1),0,1), 
-         lueckl=ifelse(is.na(lueckl),1,0)) %>% 
-  select(GH_ID, u, diff_data=diff, lueckl_data=lueckl)
+  group_by(GH_ID) %>%
+  filter(!any(kopien == 0)) %>%
+  mutate(lueckl_data=ifelse(any(data==0),0,1))
+tmp <- left_join(tmp, mis_data) 
 
 # fehlende Ergebnisseiten identifizieren
 mis_res <- tmp %>% 
-  filter(kopien == 1 & data == 1 & results == 1) %>% 
-  mutate(diff=u_nr-lag(u_nr),
-         lueckl=ifelse(any(diff>1),0,1), 
-         lueckl=ifelse(is.na(lueckl),1,0)) %>% 
-  select(GH_ID, u, diff_res=diff, lueckl_res=lueckl)
-
+  group_by(GH_ID) %>%
+  filter(!any(data == 0)) %>%
+  mutate(lueckl_res=ifelse(any(results==0),0,1))
+tmp <- left_join(tmp, mis_res)
 
 # fehlende lückenlos ausgefüllte Us identifizieren (vereinfacht)
-mis_ges_easy <- tmp %>% 
-  filter(kopien == 1 & data == 1 & results == 1) %>% 
-  mutate(diff=u_nr-lag(u_nr),
-         lueckl=ifelse(any(diff>1),0,1), 
-         lueckl=ifelse(is.na(lueckl),1,0)) %>% 
-  select(GH_ID, u, diff_ges_easy=diff, lueckl_ges_easy=lueckl)
+mis_easy <- tmp %>% 
+  group_by(GH_ID) %>%
+  filter(!any(results == 0)) %>%
+  mutate(lueckl_easy=ifelse(any(ges_easy==0),0,1))
+tmp <- left_join(tmp, mis_easy)
 
 # fehlende lückenlos ausgefüllte Us identifizieren (vollständig)
-mis_ges_hard <- tmp %>% 
-  filter(kopien == 1 & data == 1 & results == 1) %>% 
-  mutate(diff=u_nr-lag(u_nr),
-         lueckl=ifelse(any(diff>1),0,1), 
-         lueckl=ifelse(is.na(lueckl),1,0)) %>% 
-  select(GH_ID, u, diff_ges_hard=diff, lueckl_ges_hard=lueckl)
-
-#Lückenlosigkeit Kopie & Daten dranhängen (lueckl==1 --> lückenlos)
-tmp <- left_join(tmp, mis_copy, by=c('GH_ID', 'u')) %>%
-  left_join(., mis_data, by=c('GH_ID', 'u')) %>%
-  left_join(., mis_res, by=c('GH_ID', 'u')) %>%
-  left_join(., mis_ges_easy, by=c('GH_ID', 'u')) %>%
-  left_join(., mis_ges_hard, by=c('GH_ID', 'u')) %>%
-  filter(kopien == 1 | data == 1) %>%
-  select(GH_ID, u, contains('lueckl')) %>%
+mis_hard <- tmp %>% 
+  group_by(GH_ID) %>%
+  filter(!any(results == 0)) %>%
+  mutate(lueckl_hard=ifelse(any(ges_hard==0),0,1)) %>%
   ungroup()
 
-# tmp <- tmp %>%
-#   group_by(GH_ID) %>% 
+tmp <- left_join(tmp, mis_hard)
 
 check <- dlookr::diagnose(tmp)
+lueckl_heft_def1 <- tmp
 ```
 
-fehlende Kopien
+
 ```{r}
-tmp %>%
-  distinct(GH_ID, .keep_all=TRUE) %>%
-  select(GH_ID, lueckl_copy, lueckl_data) %>%
-  tabyl(lueckl_copy) 
+tmp <- lueckl_heft_def1 %>% 
+  filter(u_nr == u_min) %>%
+  select(GH_ID, contains('lueckl')) %>%
+  ungroup()
 
+tmp2 <- tmp %>% 
+  summarize(lueckl_copy=sum(lueckl_copy, na.rm=TRUE), 
+            lueckl_data=sum(lueckl_data, na.rm=TRUE),
+            lueckl_res=sum(lueckl_res, na.rm=TRUE),
+            lueckl_easy=sum(lueckl_easy, na.rm=TRUE), 
+            lueckl_hard=sum(lueckl_hard, na.rm=TRUE))
+
+# Transponieren & relative Häufigkeiten (wechselnde Nenner)
+tmp2 <- as.data.frame(t(tmp2)) 
+tmp2 <- tmp2 %>% 
+  tibble::rownames_to_column('Text') %>% 
+  mutate(freq_ges = V1 / nrow(dat)*100,
+         freq_copy = V1 / V1[1]*100,
+         freq_data = V1 / V1[2]*100,
+         freq_res = V1 / V1[3]*100) %>%
+  mutate_at(vars(freq_ges:freq_res), ~ replace(., .>100, NA))
+
+
+# Tabellenoutput putzen 
+tmp2$Text <- c('Kopien liegen lückenlos vor', 'irgendwelche Eintragungen liegen lückenlos vor', 
+               'Ergebnisseite liegt lückenlos vor', 'U lückenlos ausgefüllt (vereinfacht)', 
+               'U lückenlos ausgefüllt (vollständig)')
+  
+tmp2 %>% kbl2(col.names= c('Grad der Lückenlosigkeit', 'n', '%[1]', '%[2]', '%[3]', '%[4]'))
 ```
+  \linebreak
 
-fehlende Daten
-```{r}
-tmp %>%
-  distinct(GH_ID, .keep_all=TRUE) %>%
-  select(GH_ID, lueckl_copy, lueckl_data) %>%
-  tabyl(lueckl_data)
-```
+In der Tabelle dargestellte Prozentwerte: 
 
+* [1] = Anteil an allen erhaltenen Gelben Heften <br><br>
+* [2] = Anteil an allen Gelben Heften mit lückenlosen Kopien <br><br>
+* [3] = Anteil an allen Gelben Heften mit lückenlosen Kopien mit Eintragungen <br><br>
+* [4] = Anteil an allen Gelben Heften mit lückenlos vorhandenen Ergebnisseiten <br><br>
 
+  \linebreak
 
 Welche U-Untersuchungen fehlen?
 ```{r}
-missing <- left_join(mis_copy, mis_data, by=c('GH_ID', 'u')) %>% 
-  filter(diff_copy==2 | diff_data==2)
-
-table(missing$u)
-prop.table(table(missing$u))
+# missing <- left_join(mis_copy, mis_data, by=c('GH_ID', 'u')) %>% 
+#   filter(diff_copy==2 | diff_data==2)
+# 
+# table(missing$u)
+# prop.table(table(missing$u))
 ```
 
 

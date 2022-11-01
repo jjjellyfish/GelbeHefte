@@ -1417,13 +1417,10 @@ lueckl %>%
   kbl2() %>% 
   row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
+  \linebreak
 
-
-
-### 4.4.2 Lückenlose Dokumentation eines Gelben Hefts
-
-Überblick über vorliegende Gelbe Hefte: 
-```{r ueberblick_ausfuellstand}
+Überblick über vorliegende U-Untersuchungen (Flowchart): 
+```{r Ausfuellstand_Flowchart}
 #liegen Kopien & Eintragungen vor?
 tmp <- dat %>% 
   select(GH_ID, contains('Kopien'), contains('ausgefüllt')) %>% 
@@ -1473,8 +1470,12 @@ tmp %>% kbl2(col.names= c('Fallzahlen', paste(names(.)[2:length(.)], '[n]', sep=
 ```
 
 
+
+### 4.4.2 Lückenlose Dokumentation eines Gelben Hefts
+
 #### Defintion: von erster U bis zur letzten U
 Lückenlosigkeit (Definition: zwischen der ersten und der letzten vorliegenden U-Untersuchung fehlt eine)
+
 ```{r Lueckenlosigkeit_Heft_Def1, echo=FALSE, warning=FALSE, message=FALSE}
 ### data prep
 # Datensatz mit Ausfüll-Flow aufgreifen und U nummerieren
@@ -1545,7 +1546,7 @@ lueckl_heft_def1 <- tmp
 ```
 
 
-```{r}
+```{r Lueckenlosigkeit_Heft_Def1_output}
 tmp <- lueckl_heft_def1 %>% 
   filter(u_nr == u_min) %>%
   select(GH_ID, contains('lueckl')) %>%
@@ -1573,33 +1574,49 @@ tmp2 <- tmp2 %>%
 tmp2$Text <- c('Kopien liegen lückenlos vor', 'irgendwelche Eintragungen liegen lückenlos vor', 
                'Ergebnisseite liegt lückenlos vor', 'U lückenlos ausgefüllt (vereinfacht)', 
                'U lückenlos ausgefüllt (vollständig)')
-  
-tmp2 %>% kbl2(col.names= c('Grad der Lückenlosigkeit', 'n', '%[1]', '%[2]', '%[3]', '%[4]'))
+
+# Spaltennamen zu lang
+tmp2 %>% 
+  kbl2(col.names= c('Grad der Lückenlosigkeit', 'n', "%[1]", '%[2]', '%[3]', '%[4]')) %>% 
+  add_footnote(c("Anteil an allen erhaltenen Gelben Heften", 
+                 'Anteil an allen Gelben Heften mit lückenlosen Kopien', 
+                 'Anteil an allen Gelben Heften mit lückenlosen Kopien mit Eintragungen',
+                 'Anteil an allen Gelben Heften mit lückenlos vorhandenen Ergebnisseiten'), notation="number")
 ```
-  \linebreak
 
-In der Tabelle dargestellte Prozentwerte: 
-
-* [1] = Anteil an allen erhaltenen Gelben Heften <br><br>
-* [2] = Anteil an allen Gelben Heften mit lückenlosen Kopien <br><br>
-* [3] = Anteil an allen Gelben Heften mit lückenlosen Kopien mit Eintragungen <br><br>
-* [4] = Anteil an allen Gelben Heften mit lückenlos vorhandenen Ergebnisseiten <br><br>
 
   \linebreak
 
 Welche U-Untersuchungen fehlen?
-```{r}
-# missing <- left_join(mis_copy, mis_data, by=c('GH_ID', 'u')) %>% 
-#   filter(diff_copy==2 | diff_data==2)
-# 
-# table(missing$u)
-# prop.table(table(missing$u))
+```{r Lueckenlosigkeit_Heft_Def1_fehlendeUs, warning=FALSE, message=FALSE}
+tmp <- lueckl_heft_def1
+tmp$u <- as.factor(tmp$u)
+
+# Häufigkeit fehlender Us für verschiedene Kriterien ausgeben
+tbl1 <- tabyl(tmp$u[tmp$kopien==0], show_missing_levels = TRUE)
+tbl2 <- tabyl(tmp$u[tmp$data==0], show_missing_levels = TRUE)
+tbl3 <- tabyl(tmp$u[tmp$results==0], show_missing_levels = TRUE)
+tbl4 <- tabyl(tmp$u[tmp$ges_easy==0], show_na = FALSE)
+tbl5 <- tabyl(tmp$u[tmp$ges_hard==0], show_na = FALSE)
+
+tbl <- bind_cols(tbl1, tbl2[2:length(tbl2)], tbl3[2:length(tbl3)], tbl4[2:length(tbl4)], tbl5[2:length(tbl5)])
+
+# Tabelle in Form bringen
+tbl <- tbl %>% 
+  mutate_at(vars(contains('percent')), ~ .*100) %>%  
+  adorn_totals('row', name='Gesamt')
+
+tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>% 
+  add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2, "Ergebnisseite" = 2, 
+                     "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>% 
+  row_spec(9, extra_css = "border-bottom: 1px solid", hline_after=TRUE) %>% 
+  add_footnote("LL = Lückenlosigkeit", notation="symbol")
+
 ```
 
 
 
 to do: <br>
-- wenn die U2 nicht da ist, ist das auch  als unvollständig zählen? <br>
 - Kombination aus beiden Lückenlosigkeitskonzepten? also alle Us vorhanden und einzelne Us auch wirklich lückenlos? 
 
   

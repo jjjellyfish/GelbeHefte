@@ -588,6 +588,8 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 ## 4.4	Lückenlosigkeit der Dokumentation
 
 ### 4.4.1 Lückenlose Dokumentation einer U-Untersuchung
+
+Ausgewertet werden nur U-Untersuchungen, zu denen Kopien vorliegen, in denen mindestens eine Eintragung getätigt wurde (d.h. die U-Untersuchung wurde in irgendeinem Maße ausgefüllt) und für die die Ergebnisseite vorliegt
 ```{r u2, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
 vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 
@@ -1474,7 +1476,7 @@ tmp %>% kbl2(col.names= c('Fallzahlen', paste(names(.)[2:length(.)], '[n]', sep=
 ### 4.4.2 Lückenlose Dokumentation eines Gelben Hefts
 
 #### Defintion: von erster U bis zur letzten U
-(Definition Lückenlosigkeit zwischen der ersten und der letzten **vorliegenden** U-Untersuchung fehlt eine
+(Definition Lückenlosigkeit: zwischen der ersten und der letzten **vorliegenden** U-Untersuchung fehlt eine)
 
 ```{r Lueckenlosigkeit_Heft_Def1, echo=FALSE, warning=FALSE, message=FALSE}
 ### data prep
@@ -1550,10 +1552,12 @@ lueckl_heft_def1 <- tmp
 tmp <- lueckl_heft_def1 %>% 
   filter(u_nr == u_min) %>%
   select(GH_ID, contains('lueckl')) %>%
+  mutate(n=n()) %>% 
   ungroup()
 
 tmp2 <- tmp %>% 
-  summarize(lueckl_copy=sum(lueckl_copy, na.rm=TRUE), 
+  summarize(n_hefte=sum(n, na.rm=TRUE),
+            lueckl_copy=sum(lueckl_copy, na.rm=TRUE), 
             lueckl_data=sum(lueckl_data, na.rm=TRUE),
             lueckl_res=sum(lueckl_res, na.rm=TRUE),
             lueckl_easy=sum(lueckl_easy, na.rm=TRUE), 
@@ -1561,17 +1565,20 @@ tmp2 <- tmp %>%
 
 # Transponieren & relative Häufigkeiten (wechselnde Nenner)
 tmp2 <- as.data.frame(t(tmp2)) 
+
 tmp2 <- tmp2 %>% 
   tibble::rownames_to_column('Text') %>% 
-  mutate(freq_ges = V1 / nrow(dat)*100,
-         freq_copy = V1 / V1[1]*100,
-         freq_data = V1 / V1[2]*100,
-         freq_res = V1 / V1[3]*100) %>%
+  mutate(
+    freq_ges = V1 / V1[1]*100,
+    freq_copy = V1 / V1[2]*100,
+    freq_data = V1 / V1[3]*100,
+    freq_res = V1 / V1[4]*100) %>%
   mutate_at(vars(freq_ges:freq_res), ~ replace(., .>100, NA))
 
 
 # Tabellenoutput putzen 
-tmp2$Text <- c('Kopien liegen lückenlos vor', 'irgendwelche Eintragungen liegen lückenlos vor', 
+tmp2$Text <- c('Übermittelte Gelbe Hefte','Kopien liegen lückenlos vor', 
+               'irgendwelche Eintragungen liegen lückenlos vor', 
                'Ergebnisseite liegt lückenlos vor', 'U lückenlos ausgefüllt (vereinfacht)', 
                'U lückenlos ausgefüllt (vollständig)')
 
@@ -1615,7 +1622,7 @@ tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>%
 ```
 
 #### Defintion: von U2 bis zur letzten U
-Lückenlosigkeit (Definition: zwischen der ersten und der letzten vorliegenden U-Untersuchung fehlt eine)
+(Definition von Lückenlosigkeit: zwischen der U2 und der letzten vorliegenden U-Untersuchung fehlt eine)
 
 ```{r Lueckenlosigkeit_Heft_Def2, echo=FALSE, warning=FALSE, message=FALSE}
 ### data prep
@@ -1691,10 +1698,12 @@ lueckl_heft_def2 <- tmp
 tmp <- lueckl_heft_def2 %>% 
   filter(u_nr == u_min) %>%
   select(GH_ID, contains('lueckl')) %>%
+  mutate(n=n()) %>% 
   ungroup()
 
 tmp2 <- tmp %>% 
-  summarize(lueckl_copy=sum(lueckl_copy, na.rm=TRUE), 
+  summarize(n_hefte=sum(n, na.rm=TRUE),
+            lueckl_copy=sum(lueckl_copy, na.rm=TRUE), 
             lueckl_data=sum(lueckl_data, na.rm=TRUE),
             lueckl_res=sum(lueckl_res, na.rm=TRUE),
             lueckl_easy=sum(lueckl_easy, na.rm=TRUE), 
@@ -1704,15 +1713,16 @@ tmp2 <- tmp %>%
 tmp2 <- as.data.frame(t(tmp2)) 
 tmp2 <- tmp2 %>% 
   tibble::rownames_to_column('Text') %>% 
-  mutate(freq_ges = V1 / nrow(dat)*100,
-         freq_copy = V1 / V1[1]*100,
-         freq_data = V1 / V1[2]*100,
-         freq_res = V1 / V1[3]*100) %>%
+  mutate(freq_ges = V1 / V1[1]*100,
+         freq_copy = V1 / V1[2]*100,
+         freq_data = V1 / V1[3]*100,
+         freq_res = V1 / V1[4]*100) %>%
   mutate_at(vars(freq_ges:freq_res), ~ replace(., .>100, NA))
 
 
 # Tabellenoutput putzen 
-tmp2$Text <- c('Kopien liegen lückenlos vor', 'irgendwelche Eintragungen liegen lückenlos vor', 
+tmp2$Text <- c('Übermittelte Gelbe Hefte','Kopien liegen lückenlos vor', 
+               'irgendwelche Eintragungen liegen lückenlos vor', 
                'Ergebnisseite liegt lückenlos vor', 'U lückenlos ausgefüllt (vereinfacht)', 
                'U lückenlos ausgefüllt (vollständig)')
 

@@ -1553,7 +1553,7 @@ tmp %>% kbl2(col.names= c('Fallzahlen', paste(names(.)[2:length(.)], '[n]', sep=
 
 ### 4.4.2 Lückenlose Dokumentation eines Gelben Hefts
 
-Für Kinder, die zum Zeitpunkt der Datenerhebung die U-Untersuchungen U8 und U9 durchlaufen haben (= die letzte dokumentierte U-Untersuchung ist eine U8 bzw. U9) kann nicht sichergestellt werden, dass sie bei der Geburt ein gemäß der 2016 in Kraft getretenen Neufassung der Kinder-Richtlinie überarbeitetes Gelbes Heft erhalten haben. Die Lückenlosigkeit der Gelben Heft wird daher anhand von Kindern überprüft, deren letzte U-Untersuchung die U7a gewesen ist. 
+Für Kinder, die zum Zeitpunkt der Datenerhebung die U-Untersuchungen U8 und U9 durchlaufen haben (= die letzte dokumentierte U-Untersuchung ist eine U8 bzw. U9) kann nicht sichergestellt werden, dass sie bei der Geburt ein gemäß der 2016 in Kraft getretenen Neufassung der Kinder-Richtlinie überarbeitetes Gelbes Heft erhalten haben. Die Lückenlosigkeit der Gelben Hefte wird daher anhand von Kindern überprüft, deren letzte U-Untersuchung die U7a gewesen ist. 
 
 
 ```{r Lueckenlosigkeit_Heft_Def2, echo=FALSE, warning=FALSE, message=FALSE}
@@ -1574,7 +1574,8 @@ tmp <- left_join(tmp, tmp2)
 tmp2 <- tmp %>%
   filter(kopien == 1) %>%
   slice_max(order_by = u_nr, n=1) %>%
-  mutate(u_max = u_nr) 
+  mutate(u_max = u_nr) %>%
+  filter(u_max == 7 )
 tmp <- left_join(tmp, tmp2)
 
 # auffüllen & alle Us davor und danach entfernen --> Grundgesamtheit
@@ -1626,6 +1627,7 @@ check <- dlookr::diagnose(tmp)
 lueckl_heft_def2 <- tmp
 ```
 
+
 ```{r Lueckenlosigkeit_Heft_Def2_output}
 tmp <- lueckl_heft_def2 %>% 
   filter(u_nr == u_min) %>%
@@ -1653,10 +1655,10 @@ tmp2 <- tmp2 %>%
 
 
 # Tabellenoutput putzen 
-tmp2$Text <- c('Übermittelte Gelbe Hefte','Kopien liegen lückenlos vor', 
-               'irgendwelche Eintragungen liegen lückenlos vor', 
-               'Ergebnisseite liegt lückenlos vor', 'U lückenlos ausgefüllt (vereinfacht)', 
-               'U lückenlos ausgefüllt (vollständig)')
+tmp2$Text <- c('Übermittelte Gelbe Hefte','Kopien liegen für alle Us lückenlos vor', 
+               'irgendwelche Eintragungen liegen für alle Us lückenlos vor', 
+               'Ergebnisseite liegt für alle Us lückenlos vor', 'alle Us lückenlos ausgefüllt (vereinfacht)', 
+               'alle Us lückenlos ausgefüllt (vollständig)')
 
 # Spaltennamen zu lang
 tmp2 %>% 
@@ -1691,40 +1693,9 @@ tbl <- tbl %>%
 tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>% 
   add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2, "Ergebnisseite" = 2, 
                      "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>% 
-  row_spec(9, extra_css = "border-bottom: 1px solid", hline_after=TRUE) %>% 
+  row_spec(7, extra_css = "border-bottom: 1px solid", hline_after=TRUE) %>% 
   add_footnote("LL = Lückenlosigkeit", notation="symbol")
 
-```
-
-#### weitere Auswertungen
-Einteilung in Gruppen: Kinder, bei denen U2-U7, U7a, U8 und U9 die letzte U-Untersuchung ist
-```{r}
-tmp <- lueckl_heft_def2
-tmp$u <- as.factor(tmp$u)
-
-tmp <- tmp %>% mutate(letzte_u = case_when(
-  u_max %in% c(1,2,3,4,5,6) ~ 'U2-U7',
-  u_max == 7 ~ 'U7a',
-  u_max == 8 ~ 'U8', 
-  u_max == 9 ~ 'U9'
-))
-
-tmp %>% tabyl(letzte_u, show_missing_levels = TRUE) %>% kbl2()
-```
-
-fehlende Kopien:
-```{r}
-tmp %>% filter(kopien==0) %>% tabyl(u, letzte_u, show_missing_levels = TRUE) %>% kbl2()
-```
-
-fehlende Daten:
-```{r}
-tmp %>% filter(data==0) %>% tabyl(u, letzte_u, show_missing_levels = TRUE) %>% kbl2()
-```
-
-fehlende Ergebnisseiten:
-```{r}
-tmp %>% filter(results==0) %>% tabyl(u, letzte_u, show_missing_levels = TRUE) %>% kbl2()
 ```
 
 

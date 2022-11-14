@@ -4,12 +4,14 @@ output:
   pdf_document:
     latex_engine: lualatex # Per default wird pdflatex verwendet. fontspec braucht allerdings lualatex.
 header-includes:
-  - \usepackage[ngerman]{babel} # Sprache und Format auf Deutsch. Nicht besonders wichtig für uns aber schadet auch nicht.
+  - \usepackage[ngerman]{babel} # Sprache und Format auf Deutsch
   - \usepackage[T1]{fontenc} # Für Umlaute
   - \usepackage[utf8]{inputenc} # Alles UTF-8
   - \usepackage{fontspec} # Für Calibri
   - \setmainfont{Calibri}
-  - \usepackage{float}
+  - \usepackage{lscape}
+  - \usepackage[labelformat=empty]{caption}
+  - \usepackage[singlelinecheck=false]{caption}
 geometry: margin = 2cm
 ---
 
@@ -25,7 +27,7 @@ library(knitr)
 library(kableExtra)
 ```
 
-```{r}
+```{r data}
 load('gh_clean.rda')
 ```
 
@@ -115,6 +117,7 @@ align_string <- function(df) {
 ### 2.6.2	Eltern
 
 #### 2.6.2.3	Gelbe Hefte
+ \newline
 
 ```{r gelbe_hefte}
 tmp <- dat %>% tally() %>% tibble::rownames_to_column("Stichprobe")
@@ -531,7 +534,8 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   \linebreak
 
 #### 4.3.1.4	Relevante anamnestische Ergebnisse
-<br>
+ \newline
+
 ```{r Anamnese_Freitext_n}
 # Freitexte rausziehen
 tmp <- dat %>% select(GH_ID, contains('ausgefüllt'), contains('Ana_Freitext')) %>%
@@ -584,8 +588,10 @@ tmp <- tmp %>%
 
 tmp %>% 
   select(u, var) %>% 
-  kbl2(col.names= c('U-Untersuchung', 'Relevante anamnestische Ergebnisse'))
-
+  kbl2(col.names= c('U-Untersuchung', 'Relevante anamnestische Ergebnisse'), longtable=TRUE) %>% 
+  kable_styling(latex_options = c("hold_position", "repeat_header"), full_width = TRUE) #%>% 
+  #kableExtra::column_spec(2, width = "50em") # funktioniert im Chunk, wird aber nicht geknittet
+  
 ```
 
 
@@ -1574,8 +1580,8 @@ tmp <- left_join(tmp, tmp2)
 tmp2 <- tmp %>%
   filter(kopien == 1) %>%
   slice_max(order_by = u_nr, n=1) %>%
-  mutate(u_max = u_nr) %>%
-  filter(u_max == 7 )
+  mutate(u_max = u_nr) #%>%
+  #filter(u_max == 7)
 tmp <- left_join(tmp, tmp2)
 
 # auffüllen & alle Us davor und danach entfernen --> Grundgesamtheit
@@ -1583,7 +1589,8 @@ tmp <- tmp %>%
   group_by(GH_ID) %>%
   tidyr::fill(u_min, .direction='down') %>% #default 
   tidyr::fill(u_max, .direction='up') %>%
-  filter(u_nr >= u_min & u_nr <= u_max)
+  filter(u_nr >= u_min & u_nr <= u_max) %>% 
+  filter(u_max == 7)
 
 
 #***************************

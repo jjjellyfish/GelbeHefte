@@ -109,6 +109,31 @@ align_string <- function(df) {
 }
 ```
 
+# 2. Methodik
+
+## 2.6 Rücklauf der Erhebungen und Charakterisierung der Stichproben
+
+### 2.6.2	Eltern
+
+#### 2.6.2.3	Gelbe Hefte
+
+```{r gelbe_hefte}
+tmp <- dat %>% tally() %>% tibble::rownames_to_column("Stichprobe")
+tmp$Stichprobe[1] <- "Übermittelte Gelbe Hefte"
+  
+tmp %>% kbl2(col.names= c('Stichprobe', '[n]'))
+```
+
+```{r einzelne_us}
+tmp <- dat %>% group_by()
+
+df <- select(df, GH_ID, contains('ausgefüllt'), contains({x})) %>% 
+    pivot_longer(contains({x}), names_to='u', values_to = "var") 
+```
+
+- weitere Gruppierungen? 
+z.B. Anzah Hefte, die mit bestimmter U anfangen
+
 
 ## 4.3	Häufigkeit der Dokumentation 
 
@@ -1475,154 +1500,8 @@ tmp %>% kbl2(col.names= c('Fallzahlen', paste(names(.)[2:length(.)], '[n]', sep=
 
 ### 4.4.2 Lückenlose Dokumentation eines Gelben Hefts
 
-#### Defintion: von erster U bis zur letzten U
-(Definition Lückenlosigkeit: zwischen der ersten und der letzten **vorliegenden** U-Untersuchung fehlt eine)
+Für Kinder, die zum Zeitpunkt der Datenerhebung die U-Untersuchungen U8 und U9 durchlaufen haben (= die letzte dokumentierte U-Untersuchung ist eine U8 bzw. U9) kann nicht sichergestellt werden, dass sie bei der Geburt ein gemäß der 2016 in Kraft getretenen Neufassung der Kinder-Richtlinie überarbeitetes Gelbes Heft erhalten haben. Die Lückenlosigkeit der Gelben Heft wird daher anhand von Kindern überprüft, deren letzte U-Untersuchung die U7a gewesen ist. 
 
-```{r Lueckenlosigkeit_Heft_Def1, echo=FALSE, warning=FALSE, message=FALSE}
-### data prep
-# Datensatz mit Ausfüll-Flow aufgreifen und U nummerieren
-tmp <- lueckl_heft %>% 
-  group_by(GH_ID) %>%
-  mutate(u_nr = seq_along(u)) 
-
-# erste U mit Kopien bestimmen
-tmp2 <- tmp %>% 
-  filter(kopien == 1) %>% 
-  slice_min(order_by = u_nr, n=1) %>% 
-  mutate(u_min =u_nr) 
-tmp <- left_join(tmp, tmp2)
-
-# letzte U mit Kopien bestimmen
-tmp2 <- tmp %>%
-  filter(kopien == 1) %>%
-  slice_max(order_by = u_nr, n=1) %>%
-  mutate(u_max = u_nr) 
-tmp <- left_join(tmp, tmp2)
-
-# auffüllen & alle Us davor und danach entfernen --> Grundgesamtheit
-tmp <- tmp %>%
-  group_by(GH_ID) %>%
-  tidyr::fill(u_min, .direction='down') %>% #default 
-  tidyr::fill(u_max, .direction='up') %>%
-  filter(u_nr >= u_min & u_nr <= u_max)
-
-#***************************
-### Lückenlosigkeit operationalisieren
-# fehlende Kopien identifizieren
-tmp <- tmp %>% 
-  group_by(GH_ID) %>% 
-  mutate(lueckl_copy=ifelse(any(kopien==0),0,1))
-
-# fehlende Angaben identifizieren
-mis_data <- tmp %>% 
-  group_by(GH_ID) %>%
-  filter(!any(kopien == 0)) %>%
-  mutate(lueckl_data=ifelse(any(data==0),0,1))
-tmp <- left_join(tmp, mis_data) 
-
-# fehlende Ergebnisseiten identifizieren
-mis_res <- tmp %>% 
-  group_by(GH_ID) %>%
-  filter(!any(data == 0)) %>%
-  mutate(lueckl_res=ifelse(any(results==0),0,1))
-tmp <- left_join(tmp, mis_res)
-
-# fehlende lückenlos ausgefüllte Us identifizieren (vereinfacht)
-mis_easy <- tmp %>% 
-  group_by(GH_ID) %>%
-  filter(!any(results == 0)) %>%
-  mutate(lueckl_easy=ifelse(any(ges_easy==0),0,1))
-tmp <- left_join(tmp, mis_easy)
-
-# fehlende lückenlos ausgefüllte Us identifizieren (vollständig)
-mis_hard <- tmp %>% 
-  group_by(GH_ID) %>%
-  filter(!any(results == 0)) %>%
-  mutate(lueckl_hard=ifelse(any(ges_hard==0),0,1)) %>%
-  ungroup()
-
-tmp <- left_join(tmp, mis_hard)
-
-check <- dlookr::diagnose(tmp)
-lueckl_heft_def1 <- tmp
-```
-
-
-```{r Lueckenlosigkeit_Heft_Def1_output}
-tmp <- lueckl_heft_def1 %>% 
-  filter(u_nr == u_min) %>%
-  select(GH_ID, contains('lueckl')) %>%
-  mutate(n=n()) %>% 
-  ungroup()
-
-tmp2 <- tmp %>% 
-  summarize(n_hefte=sum(n, na.rm=TRUE),
-            lueckl_copy=sum(lueckl_copy, na.rm=TRUE), 
-            lueckl_data=sum(lueckl_data, na.rm=TRUE),
-            lueckl_res=sum(lueckl_res, na.rm=TRUE),
-            lueckl_easy=sum(lueckl_easy, na.rm=TRUE), 
-            lueckl_hard=sum(lueckl_hard, na.rm=TRUE))
-
-# Transponieren & relative Häufigkeiten (wechselnde Nenner)
-tmp2 <- as.data.frame(t(tmp2)) 
-
-tmp2 <- tmp2 %>% 
-  tibble::rownames_to_column('Text') %>% 
-  mutate(
-    freq_ges = V1 / V1[1]*100,
-    freq_copy = V1 / V1[2]*100,
-    freq_data = V1 / V1[3]*100,
-    freq_res = V1 / V1[4]*100) %>%
-  mutate_at(vars(freq_ges:freq_res), ~ replace(., .>100, NA))
-
-
-# Tabellenoutput putzen 
-tmp2$Text <- c('Übermittelte Gelbe Hefte','Kopien liegen lückenlos vor', 
-               'irgendwelche Eintragungen liegen lückenlos vor', 
-               'Ergebnisseite liegt lückenlos vor', 'U lückenlos ausgefüllt (vereinfacht)', 
-               'U lückenlos ausgefüllt (vollständig)')
-
-# Spaltennamen zu lang
-tmp2 %>% 
-  kbl2(col.names= c('Grad der Lückenlosigkeit', 'n', "%[1]", '%[2]', '%[3]', '%[4]')) %>% 
-  add_footnote(c("Anteil an allen erhaltenen Gelben Heften", 
-                 'Anteil an allen Gelben Heften mit lückenlosen Kopien', 
-                 'Anteil an allen Gelben Heften mit lückenlosen Kopien mit Eintragungen',
-                 'Anteil an allen Gelben Heften mit lückenlos vorhandenen Ergebnisseiten'), notation="number")
-```
-
-
-  \linebreak
-
-Welche U-Untersuchungen fehlen?
-```{r Lueckenlosigkeit_Heft_Def1_fehlendeUs, warning=FALSE, message=FALSE}
-tmp <- lueckl_heft_def1
-tmp$u <- as.factor(tmp$u)
-
-# Häufigkeit fehlender Us für verschiedene Kriterien ausgeben
-tbl1 <- tabyl(tmp$u[tmp$kopien==0], show_missing_levels = TRUE)
-tbl2 <- tabyl(tmp$u[tmp$data==0], show_missing_levels = TRUE)
-tbl3 <- tabyl(tmp$u[tmp$results==0], show_missing_levels = TRUE)
-tbl4 <- tabyl(tmp$u[tmp$ges_easy==0], show_na = FALSE)
-tbl5 <- tabyl(tmp$u[tmp$ges_hard==0], show_na = FALSE)
-
-tbl <- bind_cols(tbl1, tbl2[2:length(tbl2)], tbl3[2:length(tbl3)], tbl4[2:length(tbl4)], tbl5[2:length(tbl5)])
-
-# Tabelle in Form bringen
-tbl <- tbl %>% 
-  mutate_at(vars(contains('percent')), ~ .*100) %>%  
-  adorn_totals('row', name='Gesamt')
-
-tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>% 
-  add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2, "Ergebnisseite" = 2, 
-                     "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>% 
-  row_spec(9, extra_css = "border-bottom: 1px solid", hline_after=TRUE) %>% 
-  add_footnote("LL = Lückenlosigkeit", notation="symbol")
-
-```
-
-#### Defintion: von U2 bis zur letzten U
-(Definition von Lückenlosigkeit: zwischen der U2 und der letzten vorliegenden U-Untersuchung fehlt eine)
 
 ```{r Lueckenlosigkeit_Heft_Def2, echo=FALSE, warning=FALSE, message=FALSE}
 ### data prep

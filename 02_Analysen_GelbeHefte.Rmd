@@ -103,13 +103,12 @@ rel_freq <- function(df) {
   mutate_at(2:length(.), as.numeric)
 }
 
-# erstelle String für Tebellen-alignment (Prozentzahlen rechtsbündig)
+# erstelle String für Tebellen-alignment (alle ab zweiter Splate rechtsbündig)
 align_string <- function(df) {
   paste('l', paste(rep('r', (length(df)-1)), collapse=''), sep='')
 }
 ```
 
-# 2. Methodik
 
 ## 2.6 Rücklauf der Erhebungen und Charakterisierung der Stichproben
 
@@ -121,14 +120,18 @@ align_string <- function(df) {
 tmp <- dat %>% tally() %>% tibble::rownames_to_column("Stichprobe")
 tmp$Stichprobe[1] <- "Übermittelte Gelbe Hefte"
   
-tmp %>% kbl2(col.names= c('Stichprobe', '[n]'))
+tmp %>% kbl2(col.names= c('Stichprobe', '[n]')) %>% 
+    kable_styling(latex_options = "HOLD_position", position = "left")
 ```
+
+## LESEZEICHEN
+Fallzahlen nach einzelnen U-Untersuchungen ausgeben
 
 ```{r einzelne_us}
 tmp <- dat %>% group_by()
 
-df <- select(df, GH_ID, contains('ausgefüllt'), contains({x})) %>% 
-    pivot_longer(contains({x}), names_to='u', values_to = "var") 
+# df <- df %>% select(GH_ID, contains('ausgefüllt'), contains({x})) %>% 
+#     pivot_longer(contains({x}), names_to='u', values_to = "var") 
 ```
 
 - weitere Gruppierungen? 
@@ -527,11 +530,61 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
   \linebreak
 
+#### 4.3.1.4	Relevante anamnestische Ergebnisse
+<br>
+```{r Anamnese_Freitext_n}
+# Freitexte rausziehen
+tmp <- dat %>% select(GH_ID, contains('ausgefüllt'), contains('Ana_Freitext')) %>%
+  pivot_longer(contains('Ana_Freitext'), names_to='u', values_to = "var") %>%
+  pivot_longer(contains('ausgefüllt'), names_to='u_data', values_to = "data") %>%
+  mutate(u=str_extract(u, "[^_]+"),
+         u_data=str_extract(u_data, "[^_]+")) %>%
+  filter(u==u_data & data==1) %>%
+  naniar::replace_with_na(replace = list(var = 99)) %>%
+  select(-u_data, -data)
 
-## LESEZEICHEN
+### Vorhandensein ausgeben
+tmp2 <- tmp %>%
+  mutate(eintrag=case_when(
+    is.na(var) ~ 'Nein', 
+    TRUE ~ 'Ja')) %>% 
+  group_by(u, eintrag) %>%
+  tally() %>%
+  pivot_wider(., names_from = u, values_from = n) %>%
+  janitor::adorn_totals(c('row', 'col'), name = c('Ges.','Ges.'), na.rm = TRUE) %>%
+  untabyl()
 
-Gesamtergebnis: Auffälligkeiten zur Beobachtung – Auswertung der Freitexte
-```{r Anamnese_Freitext}
+## absolute Tabelle
+rowline_at <- nrow(tmp2)-1
+tmp2 %>% kbl2(col.names= c('Eintrag vorhanden', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- tmp2 %>% 
+  slice_head(n=-1) %>% 
+  janitor::adorn_percentages('col') %>% 
+  untabyl() %>% 
+  janitor::adorn_totals('row', name='Ges.') %>% 
+  janitor::adorn_pct_formatting(digits = 1, affix_sign = FALSE) %>% 
+  mutate_at(2:length(.), as.numeric)
+
+tmp2 %>% kbl2(col.names= c('Eintrag vorhanden', paste(names(.)[2:length(.)], '[%]', sep=' ')), 
+              align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+  \linebreak
+
+Freitext zu relevanten anamnestischen Ergebnissen
+```{r Anamnese_Freitext_text}
+tmp <- tmp %>% 
+  #naniar::replace_with_na(replace = list(var = 99)) %>% #[unlesbar]???
+  na.omit() %>% 
+  arrange(u, var)
+
+tmp %>% 
+  select(u, var) %>% 
+  kbl2(col.names= c('U-Untersuchung', 'Relevante anamnestische Ergebnisse'))
 
 ```
 

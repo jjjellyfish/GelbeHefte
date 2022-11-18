@@ -118,7 +118,6 @@ align_string <- function(df) {
 
 #### 2.6.2.3	Gelbe Hefte
  \newline
-
 ```{r gelbe_hefte}
 tmp <- dat %>% tally() %>% tibble::rownames_to_column("Stichprobe")
 tmp$Stichprobe[1] <- "Übermittelte Gelbe Hefte"
@@ -126,19 +125,29 @@ tmp$Stichprobe[1] <- "Übermittelte Gelbe Hefte"
 tmp %>% kbl2(col.names= c('Stichprobe', '[n]')) %>% 
     kable_styling(latex_options = "HOLD_position", position = "left")
 ```
+  \linebreak
+In den übermittelten Gelben Heften enthaltene U-Untersuchungen:
+```{r einzelne_us, message=FALSE, warning=FALSE}
+tmp1 <- dat %>% select(GH_ID, contains('Kopien')) %>% 
+  pivot_longer(contains('Kopien'), names_to='u', values_to = "var") %>% 
+  filter(var==1) %>% 
+  mutate(u=str_extract(u, "[^_]+")) %>% 
+  tabyl(u) %>% 
+  mutate(percent=percent*100)
 
-## LESEZEICHEN
-Fallzahlen nach einzelnen U-Untersuchungen ausgeben
+tmp2 <- dat %>% select(GH_ID, contains('ausgefüllt')) %>% 
+  pivot_longer(contains('ausgefüllt'), names_to='u', values_to = "var") %>% 
+  filter(var==1) %>% 
+  mutate(u=str_extract(u, "[^_]+")) %>% 
+  tabyl(u) %>% 
+  mutate(percent=percent*100)
 
-```{r einzelne_us}
-tmp <- dat %>% group_by()
+tmp <- bind_cols(tmp1, tmp2[2:ncol(tmp2)])
 
-# df <- df %>% select(GH_ID, contains('ausgefüllt'), contains({x})) %>% 
-#     pivot_longer(contains({x}), names_to='u', values_to = "var") 
+tmp %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),2))) %>% 
+    kable_styling(latex_options = "HOLD_position", position = "left") %>% 
+  add_header_above(c("", "eingesandte \n Kopien" = 2, "Kopien mit \n Eintragungen" = 2))
 ```
-
-- weitere Gruppierungen? 
-z.B. Anzah Hefte, die mit bestimmter U anfangen
 
 
 ## 4.3	Häufigkeit der Dokumentation 

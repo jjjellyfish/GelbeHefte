@@ -1571,7 +1571,7 @@ tmp %>% kbl2(col.names= c('Fallzahlen', paste(names(.)[2:length(.)], '[n]', sep=
 Für Kinder, die zum Zeitpunkt der Datenerhebung die U-Untersuchungen U8 und U9 durchlaufen haben (= die letzte dokumentierte U-Untersuchung ist eine U8 bzw. U9) kann nicht sichergestellt werden, dass sie bei der Geburt ein gemäß der 2016 in Kraft getretenen Neufassung der Kinder-Richtlinie überarbeitetes Gelbes Heft erhalten haben. Die Lückenlosigkeit der Gelben Hefte wird daher anhand von Kindern überprüft, deren letzte U-Untersuchung die U7a gewesen ist. 
 
 
-```{r Lueckenlosigkeit_Heft_Def2, echo=FALSE, warning=FALSE, message=FALSE}
+```{r Lueckenlosigkeit_Heft, echo=FALSE, warning=FALSE, message=FALSE}
 ### data prep
 # Datensatz mit Ausfüll-Flow aufgreifen und U nummerieren
 tmp <- lueckl_heft %>% 
@@ -1640,12 +1640,12 @@ mis_hard <- tmp %>%
 tmp <- left_join(tmp, mis_hard)
 
 check <- dlookr::diagnose(tmp)
-lueckl_heft_def2 <- tmp
+lueckl_heft_u2u7a <- tmp
 ```
 
 
-```{r Lueckenlosigkeit_Heft_Def2_output}
-tmp <- lueckl_heft_def2 %>% 
+```{r Lueckenlosigkeit_Heft_output}
+tmp <- lueckl_heft_u2u7a %>% 
   filter(u_nr == u_min) %>%
   select(GH_ID, contains('lueckl')) %>%
   mutate(n=n()) %>% 
@@ -1658,6 +1658,7 @@ tmp2 <- tmp %>%
             lueckl_res=sum(lueckl_res, na.rm=TRUE),
             lueckl_easy=sum(lueckl_easy, na.rm=TRUE), 
             lueckl_hard=sum(lueckl_hard, na.rm=TRUE))
+
 
 # Transponieren & relative Häufigkeiten (wechselnde Nenner)
 tmp2 <- as.data.frame(t(tmp2)) 
@@ -1686,18 +1687,41 @@ tmp2 %>%
 ```
 
   \linebreak
+In wie vielen Heften fehlen wie viele U-Untersuchungen?
+```{r}
+tmp <- lueckl_heft_u2u7a %>%
+  group_by(GH_ID) %>%
+  mutate(mis_copy=7-sum(kopien),
+         mis_data=7-sum(data),
+         mis_results=7-sum(results),
+         mis_easy=7-sum(ges_easy, na.rm=TRUE),
+         mis_hard=7-sum(ges_hard, na.rm=TRUE)) %>%
+  distinct(GH_ID, .keep_all = TRUE)
+
+# check
+tabyl(tmp$mis_copy)
+tabyl(tmp$mis_data)
+tabyl(tmp$mis_results)
+tabyl(tmp$mis_easy)
+tabyl(tmp$mis_hard)
+
+# to do: Output basteln
+```
+
+
+  \linebreak
 
 Welche U-Untersuchungen fehlen?
-```{r Lueckenlosigkeit_Heft_Def2_fehlendeUs, warning=FALSE, message=FALSE}
+```{r Lueckenlosigkeit_Heft_fehlendeUs, warning=FALSE, message=FALSE}
 tmp <- lueckl_heft_def2
 tmp$u <- as.factor(tmp$u)
 
 # Häufigkeit fehlender Us für verschiedene Kriterien ausgeben
 tbl1 <- tabyl(tmp$u[tmp$kopien==0], show_missing_levels = TRUE)
-tbl2 <- tabyl(tmp$u[tmp$data==0], show_missing_levels = TRUE)
-tbl3 <- tabyl(tmp$u[tmp$results==0], show_missing_levels = TRUE)
-tbl4 <- tabyl(tmp$u[tmp$ges_easy==0], show_na = FALSE)
-tbl5 <- tabyl(tmp$u[tmp$ges_hard==0], show_na = FALSE)
+tbl2 <- tabyl(tmp$u[tmp$kopien!=0 & tmp$data==0], show_missing_levels = TRUE)
+tbl3 <- tabyl(tmp$u[(tmp$kopien!=0 & tmp$data!=0) & tmp$results==0], show_missing_levels = TRUE)
+tbl4 <- tabyl(tmp$u[(tmp$kopien!=0 & tmp$data!=0 & tmp$results!=0) & tmp$ges_easy==0], show_na = FALSE)
+tbl5 <- tabyl(tmp$u[(tmp$kopien!=0 & tmp$data!=0 & tmp$results!=0) & tmp$ges_hard==0], show_na = FALSE)
 
 tbl <- bind_cols(tbl1, tbl2[2:length(tbl2)], tbl3[2:length(tbl3)], tbl4[2:length(tbl4)], tbl5[2:length(tbl5)])
 
@@ -1742,6 +1766,7 @@ names(tmp2) <- c('Antwort', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
 tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
+
 
   \linebreak
 

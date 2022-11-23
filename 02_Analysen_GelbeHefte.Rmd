@@ -1580,7 +1580,6 @@ tmp <- lueckl_heft %>%
 
 # U2 als erste U-Untersuchung festlegen
 tmp2 <- tmp %>% 
-  #filter(kopien == 1) %>% 
   slice_min(order_by = u_nr, n=1) %>% 
   mutate(u_min =u_nr) 
 tmp <- left_join(tmp, tmp2)
@@ -1590,7 +1589,6 @@ tmp2 <- tmp %>%
   filter(kopien == 1) %>%
   slice_max(order_by = u_nr, n=1) %>%
   mutate(u_max = u_nr) #%>%
-  #filter(u_max == 7)
 tmp <- left_join(tmp, tmp2)
 
 # auffüllen & alle Us davor und danach entfernen --> Grundgesamtheit
@@ -1598,8 +1596,8 @@ tmp <- tmp %>%
   group_by(GH_ID) %>%
   tidyr::fill(u_min, .direction='down') %>% #default 
   tidyr::fill(u_max, .direction='up') %>%
-  filter(u_nr >= u_min & u_nr <= u_max) %>% 
-  filter(u_max == 7)
+  filter(u_max == 7) %>% 
+  ungroup()
 
 
 #***************************
@@ -1646,7 +1644,7 @@ lueckl_heft_u2u7a <- tmp
 
 ```{r Lueckenlosigkeit_Heft_output}
 tmp <- lueckl_heft_u2u7a %>% 
-  filter(u_nr == u_min) %>%
+  filter(u_nr == u_min) %>% #eine Reihe pro Heft übrig behalten
   select(GH_ID, contains('lueckl')) %>%
   mutate(n=n()) %>% 
   ungroup()
@@ -1687,8 +1685,8 @@ tmp2 %>%
 ```
 
   \linebreak
-In wie vielen Heften fehlen wie viele U-Untersuchungen?
-```{r}
+In wie vielen Heften fehlen wie viele U-Untersuchungen? (Unterteilt danach, an welcher Stelle Sie fehlen)
+```{r Lueckenlosigkeit_Heft_Anzhal_fehlendeUs, warning=FALSE, message=FALSE}
 tmp <- lueckl_heft_u2u7a %>%
   group_by(GH_ID) %>%
   mutate(mis_copy=7-sum(kopien),
@@ -1696,24 +1694,44 @@ tmp <- lueckl_heft_u2u7a %>%
          mis_results=7-sum(results),
          mis_easy=7-sum(ges_easy, na.rm=TRUE),
          mis_hard=7-sum(ges_hard, na.rm=TRUE)) %>%
-  distinct(GH_ID, .keep_all = TRUE)
+  mutate(mis_data2=mis_data-mis_copy, 
+         mis_results2=mis_results-mis_data, 
+         mis_easy2=mis_easy-mis_results,
+         mis_hard2=mis_hard-mis_results) %>% 
+  select(-contains('lueckl')) %>% 
+  distinct(GH_ID, .keep_all = TRUE) %>% 
+  ungroup()
 
-# check
-tabyl(tmp$mis_copy)
-tabyl(tmp$mis_data)
-tabyl(tmp$mis_results)
-tabyl(tmp$mis_easy)
-tabyl(tmp$mis_hard)
 
-# to do: Output basteln
+# Häufigkeit von verscheidenen Anzahlen fehlender U-Untersuchungen
+tbl1 <- tabyl(tmp$mis_copy[tmp$mis_copy>0]) %>% rename(anzahl = 1) %>% add_row(anzahl=7, n=0, percent=0)
+tbl2 <- tabyl(tmp$mis_data2[tmp$mis_data2 > 0]) %>% rename(anzahl = 1)
+tbl3 <- tabyl(tmp$mis_results2[tmp$mis_results2 > 0]) %>% rename(anzahl = 1)
+tbl4 <- tabyl(tmp$mis_easy2[tmp$mis_easy2 > 0]) %>% rename(anzahl = 1)
+tbl5 <- tabyl(tmp$mis_hard2[tmp$mis_hard2 > 0]) %>% rename(anzahl = 1)
+
+# Gesamttabelle
+tbl <- list(tbl1, tbl2, tbl3, tbl4, tbl5) %>% purrr::reduce(left_join, by = "anzahl")
+
+tbl <- tbl %>% 
+  mutate_all(~replace(., is.na(.), 0)) %>% 
+  mutate_at(vars(contains('percent')), ~ .*100)
+
+# Output
+tbl %>% 
+  mutate_all(linebreak) %>%
+  kbl2(col.names= c('Anzahl fehlend', rep(c('[n]', '[%]'),5))) %>% 
+  add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2, "Ergebnisseite" = 2, 
+                     "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>% 
+  add_footnote("LL = Lückenlosigkeit", notation="symbol")
 ```
 
 
   \linebreak
 
-Welche U-Untersuchungen fehlen?
+Welche spezifischen U-Untersuchungen fehlen wie häufig?
 ```{r Lueckenlosigkeit_Heft_fehlendeUs, warning=FALSE, message=FALSE}
-tmp <- lueckl_heft_def2
+tmp <- lueckl_heft_u2u7a
 tmp$u <- as.factor(tmp$u)
 
 # Häufigkeit fehlender Us für verschiedene Kriterien ausgeben

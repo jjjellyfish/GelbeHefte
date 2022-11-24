@@ -588,19 +588,54 @@ tmp2 %>% kbl2(col.names= c('Eintrag vorhanden', paste(names(.)[2:length(.)], '[%
 ```
   \linebreak
 
-Freitext zu relevanten anamnestischen Ergebnissen
-```{r Anamnese_Freitext_text}
-tmp <- tmp %>% 
-  #naniar::replace_with_na(replace = list(var = 99)) %>% #[unlesbar]???
-  na.omit() %>% 
-  arrange(u, var)
+Anzahl vollständig unlesbarer Freitexte zu relevanten anamnestischen Ergebnissen
+```{r Anamnese_Freitext_n_unlesbar}
+tmp <- tmp %>% na.omit() %>% arrange(u, var)
 
-tmp %>% 
+### Vorhandensein ausgeben
+unlesbar <- c('^\\[unlesbar\\]$', '^\\[Unlesbar\\]$','^\\[unlesbar\\]\\.$', '^\\[nicht lesbar \\(gleich wie bei U2,U3\\)\\]$', '^\\[unkenntlich\\]$', '^\\(nicht lesen\\)$', '^\\(nicht lesbr\\)$')
+
+tmp2 <- tmp %>%
+  mutate(nicht_lesbar=case_when(
+    grepl(paste(unlesbar, collapse='|'), var) ~ 'Ja', 
+    TRUE ~ 'Nein')) %>% 
+  group_by(u, nicht_lesbar) %>%
+  tally() %>%
+  pivot_wider(., names_from = u, values_from = n) %>%
+  janitor::adorn_totals(c('row', 'col'), name = c('Ges.','Ges.'), na.rm = TRUE) %>%
+  untabyl()
+
+## absolute Tabelle
+rowline_at <- nrow(tmp2)-1
+tmp2 %>% kbl2(col.names= c('Eintrag vollständig unlesbar', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+
+## relative Tabelle
+tmp2 <- tmp2 %>% 
+  slice_head(n=-1) %>% 
+  janitor::adorn_percentages('col') %>% 
+  untabyl() %>% 
+  janitor::adorn_totals('row', name='Ges.') %>% 
+  janitor::adorn_pct_formatting(digits = 1, affix_sign = FALSE) %>% 
+  mutate_at(2:length(.), as.numeric)
+
+tmp2 %>% kbl2(col.names= c('Eintrag vollständig unlesbar', paste(names(.)[2:length(.)], '[%]', sep=' ')), 
+              align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
+
+  \linebreak
+
+Freitexte zu relevanten anamnestischen Ergebnissen (nur aufgeführt, wenn zumindest teilweise lesbar)
+```{r Anamnese_Freitext_text}
+tmp2 <- tmp %>% filter(!grepl(paste(unlesbar, collapse='|'), var))
+
+tmp2 %>% 
   select(u, var) %>% 
   kbl2(col.names= c('U-Untersuchung', 'Relevante anamnestische Ergebnisse'), longtable=TRUE) %>% 
   kable_styling(latex_options = c("hold_position", "repeat_header"), full_width = TRUE) #%>% 
   #kableExtra::column_spec(2, width = "50em") # funktioniert im Chunk, wird aber nicht geknittet
-  
 ```
 
 
@@ -1704,7 +1739,7 @@ tmp <- lueckl_heft_u2u7a %>%
 
 
 # Häufigkeit von verscheidenen Anzahlen fehlender U-Untersuchungen
-tbl1 <- tabyl(tmp$mis_copy[tmp$mis_copy>0]) %>% rename(anzahl = 1) %>% add_row(anzahl=7, n=0, percent=0)
+tbl1 <- tabyl(tmp$mis_copy[tmp$mis_copy > 0]) %>% rename(anzahl = 1) %>% add_row(anzahl=7, n=0, percent=0)
 tbl2 <- tabyl(tmp$mis_data2[tmp$mis_data2 > 0]) %>% rename(anzahl = 1)
 tbl3 <- tabyl(tmp$mis_results2[tmp$mis_results2 > 0]) %>% rename(anzahl = 1)
 tbl4 <- tabyl(tmp$mis_easy2[tmp$mis_easy2 > 0]) %>% rename(anzahl = 1)

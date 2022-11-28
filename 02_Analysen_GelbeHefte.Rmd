@@ -43,6 +43,7 @@ kbl2 = function(...) {
 options(knitr.kable.NA = '')
 ```
 
+
 ```{r functions}
 abs_freq <- function(df, x, cat_nr=NULL, rel_us=c('U2', 'U3','U4', 'U5', 'U6', 'U7', 'U7a', 'U8', 'U9')) {
   #### erstelle Outputtabelle mit absoluten Häufigkeiten
@@ -142,11 +143,15 @@ tmp2 <- dat %>% select(GH_ID, contains('ausgefüllt')) %>%
   tabyl(u) %>% 
   mutate(percent=percent*100)
 
-tmp <- bind_cols(tmp1, tmp2[2:ncol(tmp2)])
+tmp <- bind_cols(tmp1, tmp2[2:ncol(tmp2)]) %>%
+  janitor::adorn_totals('row', name='Ges.')
+
+rowline_at <- nrow(tmp)-1
 
 tmp %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),2))) %>% 
-    kable_styling(latex_options = "HOLD_position", position = "left") %>% 
-  add_header_above(c("", "eingesandte \n Kopien" = 2, "Kopien mit \n Eintragungen" = 2))
+  kable_styling(latex_options = "HOLD_position", position = "left") %>% 
+  add_header_above(c("", "eingesandte \n Kopien" = 2, "Kopien mit \n Eintragungen" = 2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
 
@@ -328,7 +333,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
 U7a-U9: Inspektion: Nystagmus
 ```{r Nystagmus}
-tmp <- abs_freq(df=dat, x='Nystagmus') 
+tmp <- abs_freq(df=dat, x='Nystagmus')
 
 ### Sortierung ändern
 tmp <- tmp %>% arrange(match(cat, '1', '2')) %>% 
@@ -336,6 +341,7 @@ tmp <- tmp %>% arrange(match(cat, '1', '2')) %>%
 
 cat_names <- c('Ja', 'Nein')
 tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+tmp$Ges.[3] <- tmp$Ges.[1] +tmp$Ges.[2]
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3
@@ -355,7 +361,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
 U7a-U9: Inspektion: Kopffehlhaltung
 ```{r Kopffehlhaltung}
-tmp <- abs_freq(df=dat, x='Kopffehlhaltung') 
+tmp <- abs_freq(df=dat, x='Kopffehlhaltung')
 
 cat_names <- c('Ja', 'Nein')
 tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
@@ -631,11 +637,17 @@ Freitexte zu relevanten anamnestischen Ergebnissen (nur aufgeführt, wenn zumind
 ```{r Anamnese_Freitext_text}
 tmp2 <- tmp %>% filter(!grepl(paste(unlesbar, collapse='|'), var))
 
+# linebreak manuell in Spalte reinkodieren
+tmp2$var <- gsub('^(.{3})(.*)$', '\\1\\\\n\\2', tmp2$var)
+#tmp2$var <-gsub("/", "\\\\/", tmp2$var)
+tmp2$var <- linebreak(tmp2$var)
+
 tmp2 %>% 
   select(u, var) %>% 
   kbl2(col.names= c('U-Untersuchung', 'Relevante anamnestische Ergebnisse'), longtable=TRUE) %>% 
-  kable_styling(latex_options = c("hold_position", "repeat_header"), full_width = TRUE) #%>% 
-  #kableExtra::column_spec(2, width = "50em") # funktioniert im Chunk, wird aber nicht geknittet
+  kable_styling(latex_options = c("hold_position", "repeat_header"), full_width = F) #%>% 
+  # kable_paper(full_width = F)
+  #kableExtra::column_spec(2, width = "15cm") # funktioniert im Chunk, wird aber nicht geknittet
 ```
 
 
@@ -646,7 +658,8 @@ tmp2 %>%
  \newline
 gesamter Abschnitt "Beratung" – Anzahl Kreuze gesetzt
 ```{r Beratung}
-tmp <- abs_freq(df=dat, x='Beratung', cat_nr=5) 
+names(dat) <- str_replace(names(dat), "Beratung$", "Beratung_Abschnitt")
+tmp <- abs_freq(df=dat, x='Beratung_Abschnitt', cat_nr=5) 
 
 cat_names <- c('0 Kreuze', '1 Kreuz', '2 Kreuze', '3 Kreuze', '4 Kreuze', '5+ Kreuze')
 tmp <- name_abs_tbl(df=tmp, namestring=cat_names)

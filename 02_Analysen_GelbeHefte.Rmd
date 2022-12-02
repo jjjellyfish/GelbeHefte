@@ -639,17 +639,15 @@ Freitexte zu relevanten anamnestischen Ergebnissen (nur aufgeführt, wenn zumind
 ```{r Anamnese_Freitext_text}
 tmp2 <- tmp %>% filter(!grepl(paste(unlesbar, collapse='|'), var))
 
-# linebreak manuell in Spalte reinkodieren
-tmp2$var <- gsub('^(.{3})(.*)$', '\\1\\\\n\\2', tmp2$var)
-#tmp2$var <-gsub("/", "\\\\/", tmp2$var)
-tmp2$var <- linebreak(tmp2$var)
+# tmp2 %>%
+#   select(u, var) %>%
+#   kbl2(col.names= c('U-Untersuchung', 'Relevante anamnestische Ergebnisse'), longtable=TRUE) %>%
+#   kable_styling(latex_options = c("hold_position", "repeat_header", "scale_down"), full_width = F) #%>%
+#   #kableExtra::column_spec(2, width = "15cm") # funktioniert im Chunk, wird aber nicht geknittet
 
-tmp2 %>% 
-  select(u, var) %>% 
-  kbl2(col.names= c('U-Untersuchung', 'Relevante anamnestische Ergebnisse'), longtable=TRUE) %>% 
-  kable_styling(latex_options = c("hold_position", "repeat_header"), full_width = F) #%>% 
-  # kable_paper(full_width = F)
-  #kableExtra::column_spec(2, width = "15cm") # funktioniert im Chunk, wird aber nicht geknittet
+tbl <- tmp2 %>% select(u, var) 
+colnames(tbl) <- c('U-Untersuchung', 'Relevante anamnestische Ergebnisse')
+tbl %>% pander::pander(justify = 'left', split.cells = c(1, 59))
 ```
 
 

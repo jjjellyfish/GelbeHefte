@@ -262,6 +262,8 @@ U6: Auffälligkeiten an Zähnen und Schleimhaut
 ```{r Zaehne}
 tmp <- abs_freq(df=dat, x='Zaehne') 
 
+
+
 cat_names <- c('Ja', 'Nein')
 tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
 

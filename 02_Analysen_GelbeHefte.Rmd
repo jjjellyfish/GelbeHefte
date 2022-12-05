@@ -103,7 +103,8 @@ rel_freq <- function(df) {
   untabyl() %>% 
   janitor::adorn_totals('row', name='valides n') %>% 
   janitor::adorn_pct_formatting(digits = 1, affix_sign = FALSE) %>% 
-  mutate_at(2:length(.), as.numeric)
+  mutate_at(2:length(.), as.numeric) %>% 
+  mutate_at(2:length(.), ~ sprintf("%.1f", round(., 1)))
 }
 
 # erstelle String für Tebellen-alignment (alle ab zweiter Splate rechtsbündig)
@@ -329,7 +330,10 @@ names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=
 
 tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+
+
 ```
+
 
   \linebreak
 
@@ -707,6 +711,28 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 Häufigkeit von erweitertem Beratungsbedarf zum Thema Sprache
 ```{r Beratung_Sprache}
 tmp <- abs_freq(df=dat, x='Beratung_Sprache') 
+
+cat_names <- c('Ja', 'Nein')
+tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+## absolute Tabelle
+rowline_at <- nrow(tmp)-3
+tmp %>% kbl2(col.names= c('Kreuz gesetzt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# evtl. auch in den Wrapper packen
+
+## relative Tabelle
+tmp2 <- rel_freq(tmp)
+names(tmp2) <- c('Kreuz gesetzt', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+
+tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+  row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+#### 4.3.2.3	Erweiterter zahnärztlicher Beratungsbedarf
+Häufigkeit von erweitertem Beratungsbedarf mit Verweis in zum Zahnarzt zur zahnärztlichen Früherkennungsuntersuchung 
+
+```{r Beratung_Zahnarzt}
+tmp <- abs_freq(df=dat, x='Beratung_Zahnarzt') 
 
 cat_names <- c('Ja', 'Nein')
 tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
@@ -1636,8 +1662,13 @@ tmp <- left_join(tmp, tmp2)
 tmp2 <- tmp %>%
   filter(kopien == 1) %>%
   slice_max(order_by = u_nr, n=1) %>%
-  mutate(u_max = u_nr) #%>%
+  mutate(u_max = u_nr)
 tmp <- left_join(tmp, tmp2)
+### to do!!! ####
+# es muss eigentlich nicht nur eine Kopie vorliegen (Eltern könnten ja mehr Kopien mitgeschickt haben)
+# erst wenn auch eien Eintragung vorliegt, kann davon ausgegangen werden, dass die U7 auch wirklich die 
+# letzte U-Untersuchung war
+
 
 # auffüllen & alle Us davor und danach entfernen --> Grundgesamtheit
 tmp <- tmp %>%
@@ -1732,6 +1763,7 @@ tmp2 %>%
                  'Anteil an allen Gelben Heften mit lückenlos vorhandenen Ergebnisseiten'), notation="number")
 ```
 
+
   \linebreak
 In wie vielen Heften fehlen wie viele U-Untersuchungen? (Unterteilt danach, an welcher Stelle Sie fehlen)
 ```{r Lueckenlosigkeit_Heft_Anzhal_fehlendeUs, warning=FALSE, message=FALSE}
@@ -1746,33 +1778,60 @@ tmp <- lueckl_heft_u2u7a %>%
          mis_results2=mis_results-mis_data, 
          mis_easy2=mis_easy-mis_results,
          mis_hard2=mis_hard-mis_results) %>% 
-  select(-contains('lueckl')) %>% 
+  #select(-contains('lueckl'), -contains('u_')) %>% 
   distinct(GH_ID, .keep_all = TRUE) %>% 
   ungroup()
 
 
-# Häufigkeit von verscheidenen Anzahlen fehlender U-Untersuchungen
 tbl1 <- tabyl(tmp$mis_copy[tmp$mis_copy > 0]) %>% rename(anzahl = 1) %>% add_row(anzahl=7, n=0, percent=0)
 tbl2 <- tabyl(tmp$mis_data2[tmp$mis_data2 > 0]) %>% rename(anzahl = 1)
 tbl3 <- tabyl(tmp$mis_results2[tmp$mis_results2 > 0]) %>% rename(anzahl = 1)
 tbl4 <- tabyl(tmp$mis_easy2[tmp$mis_easy2 > 0]) %>% rename(anzahl = 1)
 tbl5 <- tabyl(tmp$mis_hard2[tmp$mis_hard2 > 0]) %>% rename(anzahl = 1)
+# Tabelle geht nicht auf, da nicht nur vorher lückenlose Hefte aufgeführt werden (daher Überführung in erst Tabelle nicht möglich)
 
 # Gesamttabelle
-tbl <- list(tbl1, tbl2, tbl3, tbl4, tbl5) %>% purrr::reduce(left_join, by = "anzahl")
-
-tbl <- tbl %>% 
+tbl <- list(tbl1, tbl2, tbl3, tbl4, tbl5) %>% 
+  purrr::reduce(left_join, by = "anzahl") %>% 
   mutate_all(~replace(., is.na(.), 0)) %>% 
-  mutate_at(vars(contains('percent')), ~ .*100)
+  mutate_at(vars(contains('percent')), ~ .*100) %>% 
+  janitor::adorn_totals('row', name='Ges.')
 
 # Output
 tbl %>% 
   mutate_all(linebreak) %>%
   kbl2(col.names= c('Anzahl fehlend', rep(c('[n]', '[%]'),5))) %>% 
   add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2, "Ergebnisseite" = 2, 
-                     "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>% 
+                     "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>%
+  row_spec(7, extra_css = "border-bottom: 1px solid", hline_after=TRUE) %>% 
   add_footnote("LL = Lückenlosigkeit", notation="symbol")
 ```
+
+Alternative mit bis zu der Stufe lückenlosen Heften:
+```{r}
+tbl1 <- tabyl(tmp$mis_copy[tmp$mis_copy > 0]) %>% rename(anzahl = 1) %>% add_row(anzahl=7, n=0, percent=0)
+tbl2 <- tabyl(tmp$mis_data2[tmp$mis_data2 > 0 & tmp$lueckl_copy==1]) %>% rename(anzahl = 1)
+tbl3 <- tabyl(tmp$mis_results2[tmp$mis_results2 > 0 & tmp$lueckl_data==1], show_na = FALSE) %>% rename(anzahl = 1)
+tbl4 <- tabyl(tmp$mis_easy2[tmp$mis_easy2 > 0 & tmp$lueckl_res==1], show_na = FALSE) %>% rename(anzahl = 1)
+tbl5 <- tabyl(tmp$mis_hard2[tmp$mis_hard2 > 0 & tmp$lueckl_res==1],show_na = FALSE) %>% rename(anzahl = 1)
+# Tabelle geht nicht auf, da nicht nur vorher lückenlose Hefte aufgeführt werden (daher Überführung in erst Tabelle nicht möglich)
+
+# Gesamttabelle
+tbl <- list(tbl1, tbl2, tbl3, tbl4, tbl5) %>% 
+  purrr::reduce(left_join, by = "anzahl") %>% 
+  mutate_all(~replace(., is.na(.), 0)) %>% 
+  mutate_at(vars(contains('percent')), ~ .*100) %>% 
+  janitor::adorn_totals('row', name='Ges.')
+
+# Output
+tbl %>% 
+  kbl2(col.names= c('Anzahl fehlend', rep(c('[n]', '[%]'),5))) %>% 
+  add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2, "Ergebnisseite" = 2, 
+                     "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>%
+  row_spec(7, extra_css = "border-bottom: 1px solid", hline_after=TRUE) %>% 
+  add_footnote("LL = Lückenlosigkeit", notation="symbol")
+```
+
 
 
   \linebreak

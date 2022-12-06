@@ -164,7 +164,7 @@ tmp %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),2))) %>%
 
  \newline
 
-Anzahl Kreuze im Abschnitt „Untersuchung“
+Anzahl Kreuze im Abschnitt *Untersuchung
 ```{r Untersuchung, echo=FALSE, warning=FALSE, message=FALSE}
 tmp <- abs_freq(df=dat, x='Untersuchung', cat_nr=3)
 
@@ -187,7 +187,7 @@ tmp2 %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
-#### 4.3.1.2 Ausgewählte Auffälligkeiten im Abschnitt Untersuchung
+#### 4.3.1.2 Ausgewählte Auffälligkeiten im Abschnitt *Untersuchung*
  \newline
 
 U2, U3: Inspektion: morphologische Auffälligkeiten (z. B. Ptosis, Leuko-korie, Bulbusgrößenauffälligkeiten, Kolobom)
@@ -526,7 +526,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
 
 
-#### 4.3.1.3	Auffälligkeiten im Abschnitt Ergebnisse
+#### 4.3.1.3	Auffälligkeiten im Abschnitt *Ergebnisse*
  \newline
 Gesamtergebnis: Auffälligkeiten zur Beobachtung – Eintrag liegt vor
 ```{r Anamnese}
@@ -660,7 +660,7 @@ tbl %>% pander::pander(justify = 'left', split.cells = c(1, 59))
 
 #### 4.3.2.1 Erweiterter Beratungsbedarf insgesamt
  \newline
-gesamter Abschnitt "Beratung" – Anzahl Kreuze gesetzt
+gesamter Abschnitt *Beratung* – Anzahl Kreuze gesetzt
 ```{r Beratung}
 names(dat) <- str_replace(names(dat), "Beratung$", "Beratung_Abschnitt")
 tmp <- abs_freq(df=dat, x='Beratung_Abschnitt', cat_nr=5) 
@@ -1765,7 +1765,8 @@ tmp2 %>%
 
 
   \linebreak
-In wie vielen Heften fehlen wie viele U-Untersuchungen? (Unterteilt danach, an welcher Stelle Sie fehlen)
+In wie vielen Heften fehlen wie viele U-Untersuchungen? (Unterteilt danach, an welcher Stufe das Fehlen auftritt. Bei jeder folgenden Stufe werden nur Gelbe Hefte berücksichtigt, die bis dahin lückenlos waren.)
+
 ```{r Lueckenlosigkeit_Heft_Anzhal_fehlendeUs, warning=FALSE, message=FALSE}
 tmp <- lueckl_heft_u2u7a %>%
   group_by(GH_ID) %>%
@@ -1784,37 +1785,10 @@ tmp <- lueckl_heft_u2u7a %>%
 
 
 tbl1 <- tabyl(tmp$mis_copy[tmp$mis_copy > 0]) %>% rename(anzahl = 1) %>% add_row(anzahl=7, n=0, percent=0)
-tbl2 <- tabyl(tmp$mis_data2[tmp$mis_data2 > 0]) %>% rename(anzahl = 1)
-tbl3 <- tabyl(tmp$mis_results2[tmp$mis_results2 > 0]) %>% rename(anzahl = 1)
-tbl4 <- tabyl(tmp$mis_easy2[tmp$mis_easy2 > 0]) %>% rename(anzahl = 1)
-tbl5 <- tabyl(tmp$mis_hard2[tmp$mis_hard2 > 0]) %>% rename(anzahl = 1)
-# Tabelle geht nicht auf, da nicht nur vorher lückenlose Hefte aufgeführt werden (daher Überführung in erst Tabelle nicht möglich)
-
-# Gesamttabelle
-tbl <- list(tbl1, tbl2, tbl3, tbl4, tbl5) %>% 
-  purrr::reduce(left_join, by = "anzahl") %>% 
-  mutate_all(~replace(., is.na(.), 0)) %>% 
-  mutate_at(vars(contains('percent')), ~ .*100) %>% 
-  janitor::adorn_totals('row', name='Ges.')
-
-# Output
-tbl %>% 
-  mutate_all(linebreak) %>%
-  kbl2(col.names= c('Anzahl fehlend', rep(c('[n]', '[%]'),5))) %>% 
-  add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2, "Ergebnisseite" = 2, 
-                     "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>%
-  row_spec(7, extra_css = "border-bottom: 1px solid", hline_after=TRUE) %>% 
-  add_footnote("LL = Lückenlosigkeit", notation="symbol")
-```
-
-Alternative mit bis zu der Stufe lückenlosen Heften:
-```{r}
-tbl1 <- tabyl(tmp$mis_copy[tmp$mis_copy > 0]) %>% rename(anzahl = 1) %>% add_row(anzahl=7, n=0, percent=0)
 tbl2 <- tabyl(tmp$mis_data2[tmp$mis_data2 > 0 & tmp$lueckl_copy==1]) %>% rename(anzahl = 1)
 tbl3 <- tabyl(tmp$mis_results2[tmp$mis_results2 > 0 & tmp$lueckl_data==1], show_na = FALSE) %>% rename(anzahl = 1)
 tbl4 <- tabyl(tmp$mis_easy2[tmp$mis_easy2 > 0 & tmp$lueckl_res==1], show_na = FALSE) %>% rename(anzahl = 1)
 tbl5 <- tabyl(tmp$mis_hard2[tmp$mis_hard2 > 0 & tmp$lueckl_res==1],show_na = FALSE) %>% rename(anzahl = 1)
-# Tabelle geht nicht auf, da nicht nur vorher lückenlose Hefte aufgeführt werden (daher Überführung in erst Tabelle nicht möglich)
 
 # Gesamttabelle
 tbl <- list(tbl1, tbl2, tbl3, tbl4, tbl5) %>% 
@@ -1842,18 +1816,30 @@ tmp <- lueckl_heft_u2u7a
 tmp$u <- as.factor(tmp$u)
 
 # Häufigkeit fehlender Us für verschiedene Kriterien ausgeben
+# tbl1 <- tabyl(tmp$mis_copy[tmp$mis_copy > 0]) %>% rename(anzahl = 1) %>% add_row(anzahl=7, n=0, percent=0)
+# tbl2 <- tabyl(tmp$mis_data2[tmp$mis_data2 > 0 & tmp$lueckl_copy==1]) %>% rename(anzahl = 1)
+# tbl3 <- tabyl(tmp$mis_results2[tmp$mis_results2 > 0 & tmp$lueckl_data==1], show_na = FALSE) %>% rename(anzahl = 1)
+# tbl4 <- tabyl(tmp$mis_easy2[tmp$mis_easy2 > 0 & tmp$lueckl_res==1], show_na = FALSE) %>% rename(anzahl = 1)
+# tbl5 <- tabyl(tmp$mis_hard2[tmp$mis_hard2 > 0 & tmp$lueckl_res==1],show_na = FALSE) %>% rename(anzahl = 1)
+
+# tbl1 <- tabyl(tmp$u[tmp$kopien==0], show_missing_levels = TRUE)
+# tbl2 <- tabyl(tmp$u[tmp$kopien!=0 & tmp$data==0], show_missing_levels = TRUE)
+# tbl3 <- tabyl(tmp$u[(tmp$kopien!=0 & tmp$data!=0) & tmp$results==0], show_missing_levels = TRUE)
+# tbl4 <- tabyl(tmp$u[(tmp$kopien!=0 & tmp$data!=0 & tmp$results!=0) & tmp$ges_easy==0], show_na = FALSE)
+# tbl5 <- tabyl(tmp$u[(tmp$kopien!=0 & tmp$data!=0 & tmp$results!=0) & tmp$ges_hard==0], show_na = FALSE)
+
 tbl1 <- tabyl(tmp$u[tmp$kopien==0], show_missing_levels = TRUE)
-tbl2 <- tabyl(tmp$u[tmp$kopien!=0 & tmp$data==0], show_missing_levels = TRUE)
-tbl3 <- tabyl(tmp$u[(tmp$kopien!=0 & tmp$data!=0) & tmp$results==0], show_missing_levels = TRUE)
-tbl4 <- tabyl(tmp$u[(tmp$kopien!=0 & tmp$data!=0 & tmp$results!=0) & tmp$ges_easy==0], show_na = FALSE)
-tbl5 <- tabyl(tmp$u[(tmp$kopien!=0 & tmp$data!=0 & tmp$results!=0) & tmp$ges_hard==0], show_na = FALSE)
+tbl2 <- tabyl(tmp$u[tmp$data==0 & tmp$lueckl_copy==1], show_missing_levels = TRUE)
+tbl3 <- tabyl(tmp$u[tmp$results==0 & tmp$lueckl_data==1], show_missing_levels = TRUE, show_na = FALSE)
+tbl4 <- tabyl(tmp$u[tmp$ges_easy==0 & tmp$lueckl_res==1], show_na = FALSE)
+tbl5 <- tabyl(tmp$u[tmp$ges_hard==0 & tmp$lueckl_res==1], show_na = FALSE)
 
 tbl <- bind_cols(tbl1, tbl2[2:length(tbl2)], tbl3[2:length(tbl3)], tbl4[2:length(tbl4)], tbl5[2:length(tbl5)])
 
 # Tabelle in Form bringen
 tbl <- tbl %>% 
   mutate_at(vars(contains('percent')), ~ .*100) %>%  
-  adorn_totals('row', name='Gesamt')
+  adorn_totals('row', name='Ges.')
 
 tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>% 
   add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2, "Ergebnisseite" = 2, 
@@ -1868,7 +1854,7 @@ tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>%
 
 ### 4.7.4	Notizen der Eltern 
 
-Häufigkeit von Einträgen der Eltern in den notizem im Abschnitt Elterninformationen
+Häufigkeit von Einträgen der Eltern in den Notizen im Abschnitt *Elterninformation*
 ```{r Elterninfo}
 # Variable umbenennen
 names(dat) <- str_replace(names(dat), "Elterninfo_Freitext", "EInfo_Freitext")
@@ -1894,8 +1880,6 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
 
   \linebreak
-
-## LESEZEICHEN
 
 Hier können Sie Ihre Notizen eintragen – Analyse der Freitexte
 ```{r Elterninfo_Freitext}

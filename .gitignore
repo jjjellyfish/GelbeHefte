@@ -6,6 +6,7 @@
 #ignore following file formats:
 *.pdf
 *.xlsx
+*.csv
 *.rda
 *.log
 *.tex

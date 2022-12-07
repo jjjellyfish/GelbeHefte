@@ -1846,7 +1846,6 @@ tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>%
                      "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>% 
   row_spec(7, extra_css = "border-bottom: 1px solid", hline_after=TRUE) %>% 
   add_footnote("LL = Lückenlosigkeit", notation="symbol")
-
 ```
 
 

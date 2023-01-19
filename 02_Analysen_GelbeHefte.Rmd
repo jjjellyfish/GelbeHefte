@@ -161,11 +161,11 @@ tmp %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),2))) %>%
 
 # 4. Ergebnisse der Evaluation von Anlage 1 (Untersu-chungsheft für Kinder) der Kinder-Richtlinie
 
-## 4.3	Häufigkeit der Dokumentation 
+## 4.3	Häufigkeit der Dokumentation im Gelben Heft
 
 ### 4.3.1	Dokumentation von Auffälligkeiten 
 
-#### 4.3.1.1	Auffälligkeiten bei der Untersuchung
+#### 4.3.1.1	Auffälligkeiten im Abschnitt *Untersuchung* insgesamt
 
 Anzahl Kreuze im Abschnitt *Untersuchung*
 ```{r Untersuchung, echo=FALSE, warning=FALSE, message=FALSE}
@@ -217,6 +217,8 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
   \linebreak
 
+##### Ausgewählte Auffälligkeiten der Augen in der U2–U3
+
 U2, U3: Prüfung im durchfallenden Licht: Transilluminationsauffälligkeit bei Trübung der brechenden Medien
 ```{r Transillumination}
 tmp <- abs_freq(df=dat, x='Transillumination', rel_us = c('U2', 'U3'))
@@ -240,6 +242,8 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
   \linebreak
 
+##### Ausgewählte Auffälligkeiten der Augen in der U4–U7
+
 U4-U7: Brückner-Test: Transilluminationsunterschied (z.B. bei Trübung der brechenden Medien, Strabismus, Anisometropie)
 ```{r Brueckner}
 tmp <- abs_freq(df=dat, x='Brueckner')
@@ -262,6 +266,9 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 ```
 
   \linebreak
+
+##### Ausgewählte Auffälligkeiten der Augen in der U7a–U9
+
 U7a-U9: Inspektion: morphologische Auffälligkeit
 ```{r morphologische_Auffaelligkeiten2}
 tmp <- abs_freq(df=dat, x='morphologische_Auffaelligkeiten', rel_us=c('U7a', 'U8', 'U9')) 
@@ -482,6 +489,9 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
 
   \linebreak
+
+##### Ausgewählte Auffälligkeiten der Zähne und der Schleimhaut in der U6
+
 U6: Auffälligkeiten an Zähnen und Schleimhaut
 ```{r Zaehne}
 tmp <- abs_freq(df=dat, x='Zaehne') 
@@ -685,6 +695,7 @@ tbl %>% pander::pander(justify = 'left', split.cells = c(1, 59))
 ### 4.3.2	Dokumentation von erweitertem Beratungsbedarf 
 
 #### 4.3.2.1 Erweiterter Beratungsbedarf insgesamt
+
  \newline
 gesamter Abschnitt *Beratung* – Anzahl Kreuze gesetzt
 ```{r Beratung}
@@ -1840,7 +1851,7 @@ tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>%
 ```
 
 
-## 4.7	Nutzung durch Eltern
+## 4.7	Wahrnehmung des Gelben Hefts durch Eltern
 
 ### 4.7.4	Notizen der Eltern 
 

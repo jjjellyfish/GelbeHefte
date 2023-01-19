@@ -310,7 +310,11 @@ tmp <- tmp %>% arrange(match(cat, '1', '2')) %>%
 
 cat_names <- c('Ja', 'Nein')
 tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+
+# manuelle Überarbeitung
 tmp$Ges.[3] <- tmp$Ges.[1] +tmp$Ges.[2]
+tmp[tmp$`Kreuz gesetzt`=='valides n' ,2:ncol(tmp)] <- 
+  tmp[tmp$`Kreuz gesetzt`=='Ja' ,2:ncol(tmp)] + tmp[tmp$`Kreuz gesetzt`=='Nein' ,2:ncol(tmp)]
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp)-3

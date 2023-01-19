@@ -1161,7 +1161,7 @@ table(tmp$U7a_Nystagmus, useNA='always')
 
 table(tmp$U7a_Kopffehlhaltung, useNA='always')
 tmp2 <- filter(tmp, is.na(tmp$U7a_Kopffehlhaltung))
-dat$U7a_Kopffehlhaltung[dat$GH_ID %in% tmp2$GH_ID] <- '99'
+dat$U7a_Kopffehlhaltung[dat$GH_ID %in% tmp2$GH_ID] <- '2'
 
 table(tmp$U7a_Pupillenstatus, useNA='always')
 table(tmp$U7a_Hornhaut, useNA='always')

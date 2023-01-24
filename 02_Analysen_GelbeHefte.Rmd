@@ -1900,9 +1900,14 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
   \linebreak
 
-Hier können Sie Ihre Notizen eintragen – Analyse der Freitexte
+Analyse der Freitexteinträge der Eltern in den Notizen im Abschnitt *Elterninformation*
 ```{r Elterninfo_Freitext}
+tmp <- openxlsx::read.xlsx("O:/U4951/Consulimus_Abschlussdatenlieferung/01_GelbeHefte/02_freitext_data/Freitexte_NotizenEltern_dkt.xlsx",sheet = 'rdata')
 
+tmp %>% mutate(freq_F=freq_F*100,
+               freq_N=freq_N*100) %>% 
+  kbl2(col.names= c('Antwort', 'n', '% U-Untersuchungen', '% Nennungen')) %>% 
+  row_spec(c(3, 8), extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
 

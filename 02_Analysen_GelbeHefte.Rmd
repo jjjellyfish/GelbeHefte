@@ -157,16 +157,18 @@ tmp %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),2))) %>%
   kable_styling(latex_options = "HOLD_position", position = "left") %>% 
   add_header_above(c("", "eingesandte \n Kopien" = 2, "Kopien mit \n Eintragungen" = 2)) %>% 
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+
+openxlsx::write.xlsx(tmp, file='03_Ergebnisse/Ruecklauf.xlsx')
 ```
 
-# 4. Ergebnisse der Evaluation von Anlage 1 (Untersu-chungsheft für Kinder) der Kinder-Richtlinie
+# 4. Ergebnisse der Evaluation von Anlage 1 (Untersuchungsheft für Kinder) der Kinder-Richtlinie
 
 ## 4.3	Häufigkeit der Dokumentation im Gelben Heft
 
 ### 4.3.1	Dokumentation von Auffälligkeiten 
 
 #### 4.3.1.1	Auffälligkeiten im Abschnitt *Untersuchung* insgesamt
-
+ \newline
 Anzahl Kreuze im Abschnitt *Untersuchung*
 ```{r Untersuchung, echo=FALSE, warning=FALSE, message=FALSE}
 tmp <- abs_freq(df=dat, x='Untersuchung', cat_nr=3)
@@ -193,7 +195,6 @@ tmp2 %>%
 
 #### 4.3.1.2 Ausgewählte Auffälligkeiten im Abschnitt *Untersuchung*
  \newline
-
 U2, U3: Inspektion: morphologische Auffälligkeiten (z. B. Ptosis, Leuko-korie, Bulbusgrößenauffälligkeiten, Kolobom)
 ```{r morphologische_Auffaelligkeiten}
 tmp <- abs_freq(df=dat, x='morphologische_Auffaelligkeiten', rel_us = c('U2', 'U3'))
@@ -218,7 +219,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   \linebreak
 
 ##### Ausgewählte Auffälligkeiten der Augen in der U2–U3
-
+ \newline
 U2, U3: Prüfung im durchfallenden Licht: Transilluminationsauffälligkeit bei Trübung der brechenden Medien
 ```{r Transillumination}
 tmp <- abs_freq(df=dat, x='Transillumination', rel_us = c('U2', 'U3'))
@@ -243,7 +244,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   \linebreak
 
 ##### Ausgewählte Auffälligkeiten der Augen in der U4–U7
-
+ \newline
 U4-U7: Brückner-Test: Transilluminationsunterschied (z.B. bei Trübung der brechenden Medien, Strabismus, Anisometropie)
 ```{r Brueckner}
 tmp <- abs_freq(df=dat, x='Brueckner')
@@ -268,7 +269,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   \linebreak
 
 ##### Ausgewählte Auffälligkeiten der Augen in der U7a–U9
-
+ \newline
 U7a-U9: Inspektion: morphologische Auffälligkeit
 ```{r morphologische_Auffaelligkeiten2}
 tmp <- abs_freq(df=dat, x='morphologische_Auffaelligkeiten', rel_us=c('U7a', 'U8', 'U9')) 
@@ -495,7 +496,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   \linebreak
 
 ##### Ausgewählte Auffälligkeiten der Zähne und der Schleimhaut in der U6
-
+ \newline
 U6: Auffälligkeiten an Zähnen und Schleimhaut
 ```{r Zaehne}
 tmp <- abs_freq(df=dat, x='Zaehne') 
@@ -699,7 +700,6 @@ tbl %>% pander::pander(justify = 'left', split.cells = c(1, 59))
 ### 4.3.2	Dokumentation von erweitertem Beratungsbedarf 
 
 #### 4.3.2.1 Erweiterter Beratungsbedarf insgesamt
-
  \newline
 gesamter Abschnitt *Beratung* – Anzahl Kreuze gesetzt
 ```{r Beratung}
@@ -774,7 +774,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 ## 4.4	Lückenlosigkeit der Dokumentation
 
 ### 4.4.1 Lückenlose Dokumentation einer U-Untersuchung
-
+ \newline
 Ausgewertet werden nur U-Untersuchungen, zu denen Kopien vorliegen, in denen mindestens eine Eintragung getätigt wurde (d.h. die U-Untersuchung wurde in irgendeinem Maße ausgefüllt) und für die die Ergebnisseite vorliegt
 ```{r u2, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
@@ -782,14 +782,15 @@ vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten',
           'Auffaelligkeiten', 'VitaminK_ja', 
           'VitaminK_Dosis_2mg', 'VitaminK_abwDosis', 'VitaminK_nein')
 
+# Datensatz zurechtschneiden
 tmp <- dat %>% 
-  select(GH_ID, contains('ausgefüllt'), matches(vars), 
+  select(GH_ID, contains('ausgefüllt'), matches(vars), # Kopien müssen ausgefüllt sein
          -contains('morphologische'), -contains('Freitext')) %>% 
   filter(U2_ausgefüllt==1) %>% 
   select(GH_ID, contains('U2')) 
 
 # Angaben rauslöschen, wenn die Seite fehlt
-del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .)))
+del <- tmp %>% filter_at(vars(2:ncol(.)), any_vars(grepl("99", .))) # Ergebnisseite muss vorliegen
 tmp <- anti_join(tmp, del)
 
 # Variablen umbenennen
@@ -1570,6 +1571,7 @@ lueckl <- lueckl %>%
 
 Untersuchung lückenlos (vereinfachte Definition)
 ```{r vereinfacht }
+#abs
 lueckl %>% 
   slice_head(n=2) %>% 
   select(- Feld, -contains('%')) %>% 
@@ -1577,19 +1579,27 @@ lueckl %>%
   kbl2(col.names= c('ausgefüllt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 
+#rel
 lueckl %>% 
   slice_head(n=2) %>%
   mutate(`Ges. [%]`= (Ges. / sum(Ges.))*100) %>% 
   select(ausgefüllt, contains('%')) %>% 
   janitor::adorn_totals('row', name='valides n') %>% 
-  kbl2() %>% 
+  mutate_at(2:length(.), as.numeric) %>% 
+  mutate_at(2:length(.), ~ sprintf("%.1f", round(., 1))) %>% 
+  mutate_at(vars(2:length(.)), ~gsub( '\\.', ',', ., perl=TRUE )) %>% 
+  kbl2(align = align_string(.)) %>% 
   row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+
+
+     
 ```
 
   \linebreak
 
 Untersuchung lückenlos (vollständige Definition)
 ```{r vollständig }
+#abs
 lueckl %>% 
   slice_tail(n=2) %>% 
   select(- Feld, -contains('%')) %>% 
@@ -1597,12 +1607,16 @@ lueckl %>%
   kbl2(col.names= c('ausgefüllt', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
   row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 
+#rel
 lueckl %>% 
   slice_tail(n=2) %>%
   mutate(`Ges. [%]`= (Ges. / sum(Ges.))*100) %>% 
   select(ausgefüllt, contains('%')) %>% 
   janitor::adorn_totals('row', name='valides n') %>% 
-  kbl2() %>% 
+  mutate_at(2:length(.), as.numeric) %>% 
+  mutate_at(2:length(.), ~ sprintf("%.1f", round(., 1))) %>% 
+  mutate_at(vars(2:length(.)), ~gsub( '\\.', ',', ., perl=TRUE )) %>% 
+  kbl2(align = align_string(.)) %>% 
   row_spec(2, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
   \linebreak
@@ -1660,9 +1674,8 @@ tmp %>% kbl2(col.names= c('Fallzahlen', paste(names(.)[2:length(.)], '[n]', sep=
 
 
 ### 4.4.2 Lückenlose Dokumentation eines Gelben Hefts
-
+ \newline
 Für Kinder, die zum Zeitpunkt der Datenerhebung die U-Untersuchungen U8 und U9 durchlaufen haben (= die letzte dokumentierte U-Untersuchung ist eine U8 bzw. U9) kann nicht sichergestellt werden, dass sie bei der Geburt ein gemäß der 2016 in Kraft getretenen Neufassung der Kinder-Richtlinie überarbeitetes Gelbes Heft erhalten haben. Die Lückenlosigkeit der Gelben Hefte wird daher anhand von Kindern überprüft, deren letzte U-Untersuchung die U7a gewesen ist. 
-
 
 ```{r Lueckenlosigkeit_Heft, echo=FALSE, warning=FALSE, message=FALSE}
 ### data prep
@@ -1679,15 +1692,10 @@ tmp <- left_join(tmp, tmp2)
 
 # letzte U mit Kopien bestimmen
 tmp2 <- tmp %>%
-  filter(kopien == 1) %>%
+  filter(data == 1) %>% 
   slice_max(order_by = u_nr, n=1) %>%
   mutate(u_max = u_nr)
 tmp <- left_join(tmp, tmp2)
-### to do!!! ####
-# es muss eigentlich nicht nur eine Kopie vorliegen (Eltern könnten ja mehr Kopien mitgeschickt haben)
-# erst wenn auch eien Eintragung vorliegt, kann davon ausgegangen werden, dass die U7 auch wirklich die 
-# letzte U-Untersuchung war
-
 
 # auffüllen & alle Us davor und danach entfernen --> Grundgesamtheit
 tmp <- tmp %>%
@@ -1780,11 +1788,13 @@ tmp2 %>%
                  'Anteil an allen Gelben Heften mit lückenlosen Kopien', 
                  'Anteil an allen Gelben Heften mit lückenlosen Kopien mit Eintragungen',
                  'Anteil an allen Gelben Heften mit lückenlos vorhandenen Ergebnisseiten'), notation="number")
+
+openxlsx::write.xlsx(tmp2, file='03_Ergebnisse/Lueckl_Heft.xlsx')
 ```
 
 
   \linebreak
-In wie vielen Heften fehlen wie viele U-Untersuchungen? (Unterteilt danach, an welcher Stufe das Fehlen auftritt. Bei jeder folgenden Stufe werden nur Gelbe Hefte berücksichtigt, die bis dahin lückenlos waren.)
+In wie vielen Heften fehlen wie viele U-Untersuchungen? (Unterteilt danach, bei welcher Stufe das Fehlen auftritt. Bei jeder folgenden Stufe werden nur Gelbe Hefte berücksichtigt, die bis dahin lückenlos waren.)
 
 ```{r Lueckenlosigkeit_Heft_Anzhal_fehlendeUs, warning=FALSE, message=FALSE}
 tmp <- lueckl_heft_u2u7a %>%
@@ -1829,7 +1839,7 @@ tbl %>%
 
   \linebreak
 
-Welche spezifischen U-Untersuchungen fehlen wie häufig?
+Welche spezifischen U-Untersuchungen fehlen wie häufig?  (Unterteilt danach, bei welcher Stufe das Fehlen auftritt. Bei jeder folgenden Stufe werden nur Gelbe Hefte berücksichtigt, die bis dahin lückenlos waren.)
 ```{r Lueckenlosigkeit_Heft_fehlendeUs, warning=FALSE, message=FALSE}
 tmp <- lueckl_heft_u2u7a
 tmp$u <- as.factor(tmp$u)
@@ -1858,7 +1868,7 @@ tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>%
 ## 4.7	Wahrnehmung des Gelben Hefts durch Eltern
 
 ### 4.7.4	Notizen der Eltern 
-
+ \newline
 Häufigkeit von Einträgen der Eltern in den Notizen im Abschnitt *Elterninformation*
 ```{r Elterninfo}
 # Variable umbenennen

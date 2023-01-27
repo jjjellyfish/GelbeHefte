@@ -1621,6 +1621,50 @@ lueckl %>%
 ```
   \linebreak
 
+```{r Lueckenlosigkeit_plot, message=FALSE, warning=FALSE}
+tmp <- lueckl %>% 
+  mutate(def = c(rep('vereinfachte Definition',2), rep('strenge Definition',2))) %>% 
+  select(ausgefüllt, def, contains('%')) %>% 
+  filter(ausgefüllt == 'Ja') %>% 
+  pivot_longer(cols=contains('%'), names_to = 'U', values_to = 'freq') %>% 
+  mutate(
+    #U = stringi::stri_sub(U,1,regexpr(" ",U)[[1]]-1),
+    U = str_extract(U, "[^\\ ]+"), 
+    freq=freq/100)
+
+#manuell beschriften
+tmp$U_n <- rep(c('U2\n(n=1.708)', 'U3\n(n=1.700)', 'U4\n(n=1.496)', 'U5\n(n=1.182)', 'U6\n(n=896)', 'U7\n(n=711)', 'U7a\n(n=507)', 'U8\n(n=306)', 'U9\n(n=107)'),2)
+
+p <- ggplot(tmp, aes(x = U_n, 
+                y = freq, 
+                fill = factor(def, levels=c('vereinfachte Definition', 'strenge Definition')), 
+                #color= factor(def, levels = c('vereinfacht', 'streng')),
+                label = scales::percent(freq, accuracy=.1, decimal.mark = ","))) + 
+  geom_bar(stat = "identity", position='dodge') +
+  scale_y_continuous(limits = c(0.0, 1.02), labels = scales::percent_format(), breaks=c(0,.2,.4,.6,.8,1)) +
+  geom_text(position = position_dodge(width = .9),vjust = -0.5, size = 4, color="#00386a") + 
+  scale_fill_manual(values=c('#00386a', '#BED600')) +
+  xlab("Untersuchung") +
+  ylab("Anteil lückenloser Untersuchungen")+
+  theme_bw() +
+  theme(axis.title.x = element_text(color="#00386a", family = "Verdana", size = 14),
+        axis.text.x= element_text(color="#00386a", family = "Verdana", size = 12),
+        #axis.ticks.x = element_text(color="#00386a", family = "Verdana", size = 14),
+        axis.title.y = element_text(color="#00386a", family = "Verdana", size = 14),
+        axis.text.y = element_text(color="#00386a", family = "Verdana", size = 14),
+        strip.text.x = element_text(color="#00386a", family = "Verdana", size = 14),
+        legend.position="bottom",
+        legend.title = element_blank(), 
+        legend.text = element_text(color="#00386a", family = "Verdana", size = 14),
+        plot.title = element_blank())
+
+
+bmp(file="03_Ergebnisse/Lueckenlosigkeit.bmp", width = 750, height = 500, type="cairo")
+print(p)
+dev.off()
+```
+
+
 Überblick über vorliegende U-Untersuchungen (Flowchart): 
 ```{r Ausfuellstand_Flowchart}
 #liegen Kopien & Eintragungen vor?
@@ -1657,7 +1701,7 @@ tmp <- tmp %>% group_by(u) %>%
 
 tmp <- as.data.frame(t(tmp)) 
  rownames(tmp) <- c('', 'Kopien liegen vor', 'irgendwelche Eintragungen liegen vor', 'Ergebnisseite liegt vor', 
-                   'U lückenlos ausgefüllt (vereinfacht)', 'U lückenlos ausgefüllt (vollständig)')
+                   'U lückenlos ausgefüllt (vereinfacht)', 'U lückenlos ausgefüllt (streng)')
 
 # Tabellenoutput putzen 
 tmp <- tmp %>% 
@@ -1734,7 +1778,7 @@ mis_easy <- tmp %>%
   mutate(lueckl_easy=ifelse(any(ges_easy==0),0,1))
 tmp <- left_join(tmp, mis_easy)
 
-# fehlende lückenlos ausgefüllte Us identifizieren (vollständig)
+# fehlende lückenlos ausgefüllte Us identifizieren (streng)
 mis_hard <- tmp %>% 
   group_by(GH_ID) %>%
   filter(!any(results == 0)) %>%
@@ -1779,7 +1823,7 @@ tmp2 <- tmp2 %>%
 tmp2$Text <- c('Übermittelte Gelbe Hefte','Kopien liegen für alle Us lückenlos vor', 
                'irgendwelche Eintragungen liegen für alle Us lückenlos vor', 
                'Ergebnisseite liegt für alle Us lückenlos vor', 'alle Us lückenlos ausgefüllt (vereinfacht)', 
-               'alle Us lückenlos ausgefüllt (vollständig)')
+               'alle Us lückenlos ausgefüllt (streng)')
 
 # Spaltennamen zu lang
 tmp2 %>% 
@@ -1830,7 +1874,7 @@ tbl <- list(tbl1, tbl2, tbl3, tbl4, tbl5) %>%
 tbl %>% 
   kbl2(col.names= c('Anzahl fehlend', rep(c('[n]', '[%]'),5))) %>% 
   add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2, "Ergebnisseite" = 2, 
-                     "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>%
+                     "LL* (vereinfacht)" = 2, "LL* (streng)" = 2)) %>%
   row_spec(7, extra_css = "border-bottom: 1px solid", hline_after=TRUE) %>% 
   add_footnote("LL = Lückenlosigkeit", notation="symbol")
 
@@ -1861,7 +1905,7 @@ tbl <- tbl %>%
 
 tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>% 
   add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2, "Ergebnisseite" = 2, 
-                     "LL* (vereinfacht)" = 2, "LL* (Vollständig)" = 2)) %>% 
+                     "LL* (vereinfacht)" = 2, "LL* (streng)" = 2)) %>% 
   row_spec(7, extra_css = "border-bottom: 1px solid", hline_after=TRUE) %>% 
   add_footnote("LL = Lückenlosigkeit", notation="symbol")
 
@@ -1873,7 +1917,7 @@ openxlsx::write.xlsx(tbl, file='03_Ergebnisse/Lueckl_Heft_welcheUs.xlsx')
 
 ### 4.7.4	Notizen der Eltern 
  \newline
-Häufigkeit von Einträgen der Eltern in den Notizen im Abschnitt *Elterninformation*
+Häufigkeit von Einträgen der Eltern in den Notizen im Abschnitt *Elterninformation* (Die hohe Anzahl fehlender Werte kommt dadurch zustande, dass die entsprechende Seite häufig nicht übermittelt wurde.)
 ```{r Elterninfo}
 # Variable umbenennen
 names(dat) <- str_replace(names(dat), "Elterninfo_Freitext", "EInfo_Freitext")

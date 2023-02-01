@@ -36,7 +36,7 @@ load('gh_clean.rda')
 # wrapper
 kbl2 = function(...) {
   kableExtra::kbl(..., booktabs = T, digits=1, 
-                  format.args = list(decimal.mark = ',', big.mark = ".")) %>% 
+                  format.args = list(decimal.mark = ',', big.mark = "."), linesep = "") %>% 
     kable_styling(latex_options = "HOLD_position", position = "left")
 }
 

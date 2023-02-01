@@ -28,7 +28,7 @@ library(kableExtra)
 ```
 
 ```{r data}
-load('gh_clean.rda')
+load("O:/U4951/Consulimus_Abschlussdatenlieferung/01_GelbeHefte/gh_clean.rda")
 ```
 
 

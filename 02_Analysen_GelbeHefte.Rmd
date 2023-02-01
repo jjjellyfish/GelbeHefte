@@ -28,7 +28,7 @@ library(kableExtra)
 ```
 
 ```{r data}
-load('gh_clean.rda')
+load("O:/U4951/Consulimus_Abschlussdatenlieferung/01_GelbeHefte/gh_clean.rda")
 ```
 
 
@@ -36,7 +36,7 @@ load('gh_clean.rda')
 # wrapper
 kbl2 = function(...) {
   kableExtra::kbl(..., booktabs = T, digits=1, 
-                  format.args = list(decimal.mark = ',', big.mark = ".")) %>% 
+                  format.args = list(decimal.mark = ',', big.mark = "."), linesep = "") %>% 
     kable_styling(latex_options = "HOLD_position", position = "left")
 }
 
@@ -775,7 +775,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 
 ### 4.4.1 Lückenlose Dokumentation einer U-Untersuchung
  \newline
-Ausgewertet werden nur U-Untersuchungen, zu denen Kopien vorliegen, in denen mindestens eine Eintragung getätigt wurde (d.h. die U-Untersuchung wurde in irgendeinem Maße ausgefüllt) und für die die Ergebnisseite vorliegt
+Ausgewertet werden nur U-Untersuchungen, zu denen Kopien vorliegen, in denen mindestens eine Eintragung getätigt wurde (d.h. die U-Untersuchung wurde in irgendeinem Maße ausgefüllt) und für die die Ergebnisseite vorliegt.
 ```{r u2, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
 vars <- c('KGewicht', 'KLaenge', 'Kopfumfang', 'keineAuffaelligkeiten', 

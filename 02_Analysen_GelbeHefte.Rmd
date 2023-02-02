@@ -1,5 +1,5 @@
 ---
-title: "Analysen Gelbe Hefte"
+title: "Ergebnisse aus den Gelben Heften"
 output: 
   pdf_document:
     latex_engine: lualatex # Per default wird pdflatex verwendet. fontspec braucht allerdings lualatex.
@@ -215,7 +215,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
-  \linebreak
+\pagebreak
 
 ##### Ausgewählte Auffälligkeiten der Augen in der U2–U3
  \newline
@@ -376,7 +376,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
-  \linebreak
+\pagebreak
 
 U7a-U9: Hornhautreflexbildchen: auffällig (Strabismus)
 ```{r Hornhaut}
@@ -445,7 +445,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
-  \linebreak
+\pagebreak
 
 U7a-U9: Sehtest (monokulare Prüfung...): Sehschwäche links
 ```{r Sehschwaeche_links}
@@ -519,7 +519,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
-  \linebreak
+\pagebreak
 U6: Häufigkeit des Verweises zum Zahnarzt 
 ```{r Verweis_Zahnarzt}
 tmp <- abs_freq(df=dat, x='U6_Verweis_Zahnarzt') 
@@ -595,9 +595,10 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
+\pagebreak
 
-#### 4.3.1.4	Relevante anamnestische Ergebnisse
- \newline
+#### 4.3.1.4	Relevante anamnestische Ergebnisse \newline
+
 ```{r Anamnese}
 # # Variable umbenennen
 # names(dat) <- str_replace(names(dat), "Anamnese_Freitext", "Ana_Freitext")
@@ -649,8 +650,8 @@ tmp2 <- tmp %>%
 ## absolute Tabelle
 rowline_at <- nrow(tmp2)-1
 tmp2 %>% kbl2(col.names= c('Eintrag vorhanden', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>%
+  kable_styling(latex_options = "HOLD_position", position = "left") %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
-# evtl. auch in den Wrapper packen
 
 ## relative Tabelle
 tmp2 <- tmp2 %>%
@@ -773,7 +774,7 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
-  \linebreak
+\pagebreak
 
 Häufigkeit von erweitertem Beratungsbedarf zum Thema Sprache
 ```{r Beratung_Sprache}
@@ -796,11 +797,12 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
+  \linebreak
 
 ## 4.4	Lückenlosigkeit der Dokumentation
 
-### 4.4.1 Lückenlose Dokumentation einer U-Untersuchung
- \newline
+### 4.4.1 Lückenlose Dokumentation einer U-Untersuchung  \newline
+
 Ausgewertet werden nur U-Untersuchungen, zu denen Kopien vorliegen, in denen mindestens eine Eintragung getätigt wurde (d.h. die U-Untersuchung wurde in irgendeinem Maße ausgefüllt) und für die die Ergebnisseite vorliegt.
 ```{r u2, message=FALSE, warning=FALSE}
 ## relevante Variablen filtern & Datensatz vorbereiten
@@ -1865,7 +1867,7 @@ tmp2 %>%
 ```
 
 
-  \linebreak
+\pagebreak
 In wie vielen Heften fehlen wie viele U-Untersuchungen? (Unterteilt danach, bei welcher Stufe das Fehlen auftritt. Bei jeder folgenden Stufe werden nur Gelbe Hefte berücksichtigt, die bis dahin lückenlos waren. n = Anzahl Gelbe Hefte)
 
 ```{r Lueckenlosigkeit_Heft_Anzhal_fehlendeUs, warning=FALSE, message=FALSE}
@@ -1958,7 +1960,7 @@ openxlsx::write.xlsx(tbl, file='03_Ergebnisse/Lueckl_Heft_welcheUs.xlsx')
 ## 4.7	Wahrnehmung des Gelben Hefts durch Eltern
 
 ### 4.7.4	Notizen der Eltern 
- \newline
+
 Häufigkeit von Einträgen der Eltern in den Notizen im Abschnitt *Elterninformation* (Die hohe Anzahl fehlender Werte kommt dadurch zustande, dass die entsprechende Seite häufig nicht übermittelt wurde.)
 ```{r Elterninfo}
 # Variable umbenennen
@@ -1993,7 +1995,7 @@ tmp <- openxlsx::read.xlsx("O:/U4951/Consulimus_Abschlussdatenlieferung/01_Gelbe
 tmp <- tmp %>% mutate(freq_F=freq_F*100,
                freq_N=freq_N*100) 
 
-tmp$freq_F[10] <-10
+tmp$freq_F[10] <- NA
 
 tmp%>% 
   kbl2(col.names= c('Antwort', 'n', '% U-Untersuchungen', '% Nennungen')) %>% 

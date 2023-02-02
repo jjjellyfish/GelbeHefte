@@ -571,7 +571,6 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
 Gesamtergebnis: Auffälligkeiten zur Beobachtung – Eintrag liegt vor
 ```{r Auffälligkeiten}
 # Variable umbenennen
-names(dat) <- str_replace(names(dat), "Anamnese_Freitext", "Ana_Freitext")
 names(dat) <- str_replace(names(dat), "Auffaelligkeiten_Freitext", "Auff_Freitext")
 names(dat) <- str_replace(names(dat), "morphologische_Auffaelligkeiten", "morphologische_Auff")
 names(dat) <- str_replace(names(dat), "keineAuffaelligkeiten", "keineAuff")
@@ -596,12 +595,36 @@ tmp2 %>% kbl2(align = align_string(tmp2)) %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
 
-  \linebreak
 
 #### 4.3.1.4	Relevante anamnestische Ergebnisse
  \newline
-nur inkludiert, wenn Ergebnisseite vorhanden
+```{r Anamnese}
+# # Variable umbenennen
+# names(dat) <- str_replace(names(dat), "Anamnese_Freitext", "Ana_Freitext")
+# 
+# tmp <- abs_freq(df=dat, x='Anamnese') 
+# 
+# cat_names <- c('Ja', 'Nein')
+# tmp <- name_abs_tbl(df=tmp, namestring=cat_names, namecat = 'Kreuz gesetzt')
+# 
+# ## absolute Tabelle
+# rowline_at <- nrow(tmp)-3
+# tmp %>% kbl2(col.names= c('Eintrag liegt vor', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+#   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+# # evtl. auch in den Wrapper packen
+# 
+# ## relative Tabelle
+# tmp2 <- rel_freq(tmp)
+# names(tmp2) <- c('Eintrag liegt vor', paste(names(tmp2)[2:length(tmp2)], '[%]', sep=' '))
+# 
+# tmp2 %>% kbl2(align = align_string(tmp2)) %>% 
+#   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
+```
+
 ```{r Anamnese_Freitext_n}
+# Variable umbenennen
+names(dat) <- str_replace(names(dat), "Anamnese_Freitext", "Ana_Freitext")
+
 # Freitexte rausziehen
 tmp <- dat %>% select(GH_ID, contains('ausgefüllt'), contains('Ana_Freitext')) %>%
   pivot_longer(contains('Ana_Freitext'), names_to='u', values_to = "var") %>%
@@ -615,8 +638,8 @@ tmp <- dat %>% select(GH_ID, contains('ausgefüllt'), contains('Ana_Freitext')) 
 ### Vorhandensein ausgeben
 tmp2 <- tmp %>%
   mutate(eintrag=case_when(
-    is.na(var) ~ 'Nein', 
-    TRUE ~ 'Ja')) %>% 
+    is.na(var) ~ 'Nein',
+    TRUE ~ 'Ja')) %>%
   group_by(u, eintrag) %>%
   tally() %>%
   pivot_wider(., names_from = u, values_from = n) %>%
@@ -625,21 +648,21 @@ tmp2 <- tmp %>%
 
 ## absolute Tabelle
 rowline_at <- nrow(tmp2)-1
-tmp2 %>% kbl2(col.names= c('Eintrag vorhanden', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>% 
+tmp2 %>% kbl2(col.names= c('Eintrag vorhanden', paste(names(.)[2:length(.)], '[n]', sep=' '))) %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 # evtl. auch in den Wrapper packen
 
 ## relative Tabelle
-tmp2 <- tmp2 %>% 
-  slice_head(n=-1) %>% 
-  janitor::adorn_percentages('col') %>% 
-  untabyl() %>% 
-  janitor::adorn_totals('row', name='Ges.') %>% 
-  janitor::adorn_pct_formatting(digits = 1, affix_sign = FALSE) %>% 
+tmp2 <- tmp2 %>%
+  slice_head(n=-1) %>%
+  janitor::adorn_percentages('col') %>%
+  untabyl() %>%
+  janitor::adorn_totals('row', name='Ges.') %>%
+  janitor::adorn_pct_formatting(digits = 1, affix_sign = FALSE) %>%
   mutate_at(2:length(.), as.numeric)
 
-tmp2 %>% kbl2(col.names= c('Eintrag vorhanden', paste(names(.)[2:length(.)], '[%]', sep=' ')), 
-              align = align_string(tmp2)) %>% 
+tmp2 %>% kbl2(col.names= c('Eintrag vorhanden', paste(names(.)[2:length(.)], '[%]', sep=' ')),
+              align = align_string(tmp2)) %>%
   row_spec(rowline_at, extra_css = "border-bottom: 1px solid", hline_after=TRUE)
 ```
   \linebreak

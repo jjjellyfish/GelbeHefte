@@ -116,7 +116,7 @@ align_string <- function(df) {
 ```
 
 
-# 2. Methodik
+# . Methodik
 
 ## 2.6 Rücklauf der Erhebungen und Charakterisierung der Stichproben
 
@@ -1955,6 +1955,79 @@ tbl %>% kbl2(col.names= c('U-Untersuchung', rep(c('[n]', '[%]'),5))) %>%
 
 openxlsx::write.xlsx(tbl, file='03_Ergebnisse/Lueckl_Heft_welcheUs.xlsx')
 ```
+
+
+```{r Lueckenlosigkeit_Heft_verloreneHefte, warning=FALSE, message=FALSE}
+# Wie häufig fehlen bestimmte U-Untersuchungen in Folge
+tmp <- lueckl_heft_u2u7a %>% select(GH_ID:data) %>% 
+  pivot_wider(names_from=u, values_from=c(kopien, data))
+
+tmp1 <- tmp %>% group_by(GH_ID) %>% 
+  mutate(missc_u2 = kopien_U2, 
+         missc_u2u3 = ifelse(kopien_U2==0 & kopien_U3==0, 0, 1),
+         missc_u2u3u4 = ifelse(kopien_U2==0 & kopien_U3==0 & kopien_U4==0, 0, 1),
+         missc_u2u3u4u5 = ifelse(kopien_U2==0 & kopien_U3==0 & kopien_U4==0 & 
+                                   kopien_U5==0, 0, 1),
+         missc_u2u3u4u5u6 = ifelse(kopien_U2==0 & kopien_U3==0 & kopien_U4==0 & 
+                                     kopien_U5==0 & kopien_U6==0, 0, 1), 
+         missc_u2u3u4u5u6u7 = ifelse(kopien_U2==0 & kopien_U3==0 & kopien_U4==0 & 
+                                     kopien_U5==0 & kopien_U6==0 & kopien_U7==0, 0, 1)) %>% 
+  select(GH_ID, starts_with('missc')) %>% 
+  mutate_at(vars(missc_u2:missc_u2u3u4u5u6u7), as.factor) %>% 
+  ungroup() 
+
+tbl1 <- tmp1 %>% count(missc_u2)
+tbl2 <- tmp1 %>% count(missc_u2u3)
+tbl3 <- tmp1 %>% count(missc_u2u3u4)
+tbl4 <- tmp1 %>% count(missc_u2u3u4u5)
+tbl5 <- tmp1 %>% count(missc_u2u3u4u5u6)
+tbl6 <- tmp1 %>% count(missc_u2u3u4u5u6u7)
+
+tblc <- bind_cols(tbl1, tbl2[2], tbl3[2], tbl4[2], tbl5[2], tbl6[2])
+tblc <- as.data.frame(t(tblc))
+tblc <- tblc %>% filter(V1 != 1) %>% select(V2, V1)
+
+tmp2 <- tmp %>% group_by(GH_ID) %>% 
+  mutate(missd_u2 = data_U2, 
+         missd_u2u3 = ifelse(data_U2==0 & data_U3==0, 0, 1),
+         missd_u2u3u4 = ifelse(data_U2==0 & data_U3==0 & data_U4==0, 0, 1),
+         missd_u2u3u4u5 = ifelse(data_U2==0 & data_U3==0 & data_U4==0 & 
+                                   data_U5==0, 0, 1),
+         missd_u2u3u4u5u6 = ifelse(data_U2==0 & data_U3==0 & data_U4==0 & 
+                                     data_U5==0 & data_U6==0, 0, 1), 
+         missd_u2u3u4u5u6u7 = ifelse(data_U2==0 & data_U3==0 & data_U4==0 & 
+                                     data_U5==0 & data_U6==0 & data_U7==0, 0, 1)) %>% 
+  select(GH_ID, starts_with('missd')) %>% 
+  mutate_at(vars(missd_u2:missd_u2u3u4u5u6u7), as.factor) %>% 
+  ungroup() 
+
+tbl1 <- tmp2 %>% count(missd_u2)
+tbl2 <- tmp2 %>% count(missd_u2u3)
+tbl3 <- tmp2 %>% count(missd_u2u3u4)
+tbl4 <- tmp2 %>% count(missd_u2u3u4u5)
+tbl5 <- tmp2 %>% count(missd_u2u3u4u5u6)
+tbl6 <- tmp2 %>% count(missd_u2u3u4u5u6u7)
+
+tbld <- bind_cols(tbl1, tbl2[2], tbl3[2], tbl4[2], tbl5[2], tbl6[2])
+tbld <- as.data.frame(t(tbld))
+tbld <- tbld %>% filter(V1 != 1) %>% select(V2, V1)
+
+tbl <-  bind_cols(tblc, tbld)
+
+tbl <- tbl %>% 
+  mutate_at(vars(V2...1:V1...4), as.numeric) %>%
+  mutate(V1...2 = (V2...1 / 231)*100,
+         V1...4 = (V2...3 / 231)*100)
+
+rownames(tbl) <- c('U2 fehlt', 'U2 bis U3 fehlen', 'U2 bis U4 fehlen', 
+                   'U2 bis U5 fehlen', 'U2 bis U6 fehlen', 'U2 bis U7 fehlen')
+
+tbl %>% kbl2(col.names= c(rep(c('[n]', '[%]'),2))) %>% 
+  add_header_above(c("", "Kopien" = 2, "Eintragungen" = 2))
+
+openxlsx::write.xlsx(tbl, file='03_Ergebnisse/Lueckl_Heft_verloreneHefte.xlsx')
+```
+
 
 
 ## 4.7	Wahrnehmung des Gelben Hefts durch Eltern
